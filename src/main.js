@@ -72,13 +72,13 @@ Array(200).fill().forEach(addStar);
 // Background
 
 const spaceTexture = new THREE.TextureLoader().load('assets/background choise.jpg');
-scene.background = spaceTexture;
+
 
 // Avatar
 
-const jeffTexture = new THREE.TextureLoader().load('assets/me.jpg');
+const Jonathan = new THREE.TextureLoader().load('assets/me.jpg');
 
-const jeff = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshBasicMaterial({ map: jeffTexture }));
+const jeff = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshBasicMaterial({ map: Jonathan }));
 
 scene.add(jeff);
 
