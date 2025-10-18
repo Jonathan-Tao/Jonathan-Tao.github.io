@@ -71,7 +71,7 @@ Array(1000).fill().forEach(addStar);
 
 // Background
 
-const backgroundTexture = new THREE.TextureLoader().load('/public/976156.png');
+const backgroundTexture = new THREE.TextureLoader().load('/976156.png');
 const backgroundGeometry = new THREE.SphereGeometry(500, 60, 40);
 backgroundGeometry.scale(-1, 1, 1);
 const backgroundMaterial = new THREE.MeshBasicMaterial({ map: backgroundTexture });
