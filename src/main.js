@@ -61,18 +61,22 @@ function addStar() {
 
   const [x, y, z] = Array(3)
     .fill()
-    .map(() => THREE.MathUtils.randFloatSpread(100));
+    .map(() => THREE.MathUtils.randFloatSpread(500));
 
   star.position.set(x, y, z);
   scene.add(star);
 }
 
-Array(200).fill().forEach(addStar);
+Array(1000).fill().forEach(addStar);
 
 // Background
 
-const spaceTexture = new THREE.TextureLoader().load('assets/background choise.jpg');
-scene.background = spaceTexture;
+const backgroundTexture = new THREE.TextureLoader().load('/public/976156.png');
+const backgroundGeometry = new THREE.SphereGeometry(500, 60, 40);
+backgroundGeometry.scale(-1, 1, 1);
+const backgroundMaterial = new THREE.MeshBasicMaterial({ map: backgroundTexture });
+const backgroundSphere = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+scene.add(backgroundSphere);
 
 // Avatar
 
@@ -127,10 +131,11 @@ scene.add(letterI);
 letterI.position.set(2, 0, 5);
 
 // Lightbulb
+
 const lightbulbPivot = new THREE.Group();
 scene.add(lightbulbPivot);
 
-lightbulbPivot.position.set(0, 0, 36);
+lightbulbPivot.position.set(-2, 0, 40);
 
 const lightbulb = new THREE.Group();
 lightbulbPivot.add(lightbulb);
@@ -146,6 +151,32 @@ const base = new THREE.Mesh(baseGeometry, baseMaterial);
 base.position.y = -1.5;
 lightbulb.add(base);
 
+// Integrated Circuit
+const ic = new THREE.Group();
+
+const icBodyGeometry = new THREE.BoxGeometry(6.35, 2, 20.32);
+const icBodyMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+const icBody = new THREE.Mesh(icBodyGeometry, icBodyMaterial);
+ic.add(icBody);
+
+const pinGeometry = new THREE.BoxGeometry(0.5, 1, 0.5);
+const pinMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700 }); // Gold
+
+const rowSpacing = 7.62;
+const pinSpacing = 2.54;
+
+for (let i = 0; i < 8; i++) {
+  const pin1 = new THREE.Mesh(pinGeometry, pinMaterial);
+  pin1.position.set(-rowSpacing / 2, -1.5, -20.32 / 2 + pinSpacing / 2 + i * pinSpacing);
+  ic.add(pin1);
+
+  const pin2 = new THREE.Mesh(pinGeometry, pinMaterial);
+  pin2.position.set(rowSpacing / 2, -1.5, -20.32 / 2 + pinSpacing / 2 + i * pinSpacing);
+  ic.add(pin2);
+}
+
+//scene.add(ic);
+ic.position.set(3, 0, 11);
 
 jeff.position.z = -5;
 jeff.position.x = 2;
@@ -169,7 +200,6 @@ function moveCamera() {
   lightbulb.rotation.y += 0.01;
   lightbulb.rotation.z += 0.01;
 
-
   camera.position.z = t * -0.01;
   camera.position.x = t * -0.0002;
   camera.rotation.y = t * -0.0002;
@@ -184,6 +214,8 @@ moveCamera();
 
 function animate() {
   requestAnimationFrame(animate);
+
+  backgroundSphere.rotation.y += 0.0001;
 
   torus.rotation.x += 0.001;
   torus.rotation.y += 0.0005;
@@ -201,6 +233,9 @@ function animate() {
   lightbulbPivot.rotation.y += 0.001;
   lightbulbPivot.rotation.z += 0.001;
 
+  ic.rotation.x += 0.001;
+  ic.rotation.y += 0.002;
+
   moon.rotation.x += 0.005;
 
   // controls.update();
@@ -209,3 +244,28 @@ function animate() {
 }
 
 animate();
+
+// Video Autoplay on Scroll
+function setupVideoAutoplay(videoId) {
+  const video = document.getElementById(videoId);
+  if (video) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          if (video.paused) {
+            video.play().catch(error => {
+              console.error(`Video play failed for ${videoId}:`, error);
+            });
+          }
+        } else {
+          video.pause();
+        }
+      });
+    }, { threshold: 0.25 }); // Trigger when 25% of the video is visible
+
+    observer.observe(video);
+  }
+}
+
+setupVideoAutoplay('corexy-video');
+setupVideoAutoplay('wander-video');
