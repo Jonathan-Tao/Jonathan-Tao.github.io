@@ -49,7 +49,7 @@ canvas {
     grid-column: 2 / span 5;
     font-size: 2.5rem;
     padding: 2rem;
-    margin-bottom: var(--spacing);
+    margin-bottom: 250px;
   }
 
   section {
@@ -73,9 +73,21 @@ canvas {
     background-color: white;
     font-size: 4rem;
     display: inline;
-    line-height: 1;
+    line-height: 1.2;
   }
 
   .left {
     grid-column: 6 / 12;
+  }
+
+  .right {
+    grid-column: 2 / 8;
+  }
+
+  .project-header {
+    margin-bottom: 50px;
+  }
+
+  .right a i {
+    color: white;
   }

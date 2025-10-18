@@ -36,7 +36,7 @@ const geometry = new THREE.LatheGeometry(
 const material = new THREE.MeshStandardMaterial({ color: 0xF347A });
 const torus = new THREE.Mesh(geometry, material);
 
-scene.add(torus);
+//scene.add(torus);
 
 // Lights
 
@@ -76,7 +76,18 @@ scene.background = spaceTexture;
 
 // Avatar
 
-const jeffTexture = new THREE.TextureLoader().load('assets/me.jpg');
+const jeffTexture = new THREE.TextureLoader().load('/currentPhoto.JPG', function(texture) {
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  const aspectRatio = texture.image.width / texture.image.height;
+  if (aspectRatio > 1) {
+    texture.repeat.set(1 / aspectRatio, 1);
+    texture.offset.set((1 - (1 / aspectRatio)) / 2, 0);
+  } else {
+    texture.repeat.set(1, aspectRatio);
+    texture.offset.set(0, (1 - aspectRatio) / 2);
+  }
+});
 
 const jeff = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshBasicMaterial({ map: jeffTexture }));
 
@@ -84,14 +95,57 @@ scene.add(jeff);
 
 // Moon
 
-const moonTexture = new THREE.TextureLoader().load('assets/8k_earth_daymap.jpg');
+const moonTexture = new THREE.TextureLoader().load('/8k_earth_daymap.jpg');
 
-const moon = new THREE.Mesh(new THREE.SphereGeometry(3, 32, 32), new THREE.MeshBasicMaterial({ map: moonTexture }));
+const moon = new THREE.Mesh(new THREE.SphereGeometry(30, 32, 32), new THREE.MeshBasicMaterial({ map: moonTexture }));
 
 scene.add(moon);
 
-moon.position.z = 17;
-moon.position.setX(-8);
+moon.position.z = -400;
+moon.position.setX(-100);
+
+// Letter I
+const iGeometry = new THREE.BoxGeometry(0.75, 3, 0.5);
+const iBodyMaterial = new THREE.MeshStandardMaterial({ color: 0xFF5F05 }); // Illini Orange
+
+const letterI = new THREE.Group();
+
+const iBody = new THREE.Mesh(iGeometry, iBodyMaterial);
+letterI.add(iBody);
+
+const serifGeometry = new THREE.BoxGeometry(1.5, 0.5, 0.5);
+
+const topSerif = new THREE.Mesh(serifGeometry, iBodyMaterial);
+topSerif.position.y = 1.25;
+letterI.add(topSerif);
+
+const bottomSerif = new THREE.Mesh(serifGeometry, iBodyMaterial);
+bottomSerif.position.y = -1.25;
+letterI.add(bottomSerif);
+
+scene.add(letterI);
+letterI.position.set(2, 0, 5);
+
+// Lightbulb
+const lightbulbPivot = new THREE.Group();
+scene.add(lightbulbPivot);
+
+lightbulbPivot.position.set(0, 0, 36);
+
+const lightbulb = new THREE.Group();
+lightbulbPivot.add(lightbulb);
+
+const bulbGeometry = new THREE.SphereGeometry(1, 32, 32);
+const bulbMaterial = new THREE.MeshStandardMaterial({ color: 0xF6F6DF, emissive: 0xF6F6DF, emissiveIntensity: 0.04 });
+const bulb = new THREE.Mesh(bulbGeometry, bulbMaterial);
+lightbulb.add(bulb);
+
+const baseGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+const base = new THREE.Mesh(baseGeometry, baseMaterial);
+base.position.y = -1.5;
+lightbulb.add(base);
+
 
 jeff.position.z = -5;
 jeff.position.x = 2;
@@ -107,9 +161,20 @@ function moveCamera() {
   jeff.rotation.y += 0.01;
   jeff.rotation.z += 0.01;
 
+  // Animate letter I
+  letterI.rotation.y += 0.01;
+  letterI.rotation.z += 0.01;
+
+  // Animate Lightbulb
+  lightbulb.rotation.y += 0.01;
+  lightbulb.rotation.z += 0.01;
+
+
   camera.position.z = t * -0.01;
   camera.position.x = t * -0.0002;
   camera.rotation.y = t * -0.0002;
+
+  
 }
 
 document.body.onscroll = moveCamera;
@@ -120,9 +185,21 @@ moveCamera();
 function animate() {
   requestAnimationFrame(animate);
 
-  torus.rotation.x += 0.01;
-  torus.rotation.y += 0.005;
-  torus.rotation.z += 0.01;
+  torus.rotation.x += 0.001;
+  torus.rotation.y += 0.0005;
+  torus.rotation.z += 0.001;
+
+  jeff.rotation.x += 0.001;
+  jeff.rotation.y += 0.001;
+  jeff.rotation.z += 0.001;
+
+  letterI.rotation.x += 0.003;
+  letterI.rotation.y += 0.003;
+  letterI.rotation.z += 0.003;
+
+  lightbulbPivot.rotation.x += 0.001;
+  lightbulbPivot.rotation.y += 0.001;
+  lightbulbPivot.rotation.z += 0.001;
 
   moon.rotation.x += 0.005;
 
