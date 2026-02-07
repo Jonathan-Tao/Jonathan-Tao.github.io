@@ -1,6 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
 // Setup
 
@@ -28,6 +29,9 @@ window.addEventListener('resize', () => {
   // Update renderer
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
+
+  // Update CSS3D renderer
+  cssRenderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 //cool shape math
@@ -252,6 +256,7 @@ function animate() {
   // controls.update();
 
   renderer.render(scene, camera);
+  cssRenderer.render(cssScene, camera);
 }
 
 animate();
