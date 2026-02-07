@@ -1,0 +1,65 @@
+                                           Jonathan Tao
+                                           Vernon Hills, IL, 60061 | 224-297-0965
+    21jonathantao@gmail.com | linkedin.com/in/jonathan-x-tao | https://jonathan-tao.github.io/ | github.com/Jonathan-Tao
+
+Education
+ University of Illinois Urbana-Champaign                                                                        Champaign, IL
+ B.S. in Computer Engineering, Minor in Semiconductor Engineering                         Expected May 2028; GPA: 4.0/4.0
+    •   Coursework: ECE 220 (Computer Systems and Programming), ECE 210 (Analog Signal Processing), ECE 120
+        (Introduction to Computing), ECE 110 (Introduction to Electronics)
+
+Experience
+ Rivian                                                                                                      Research Park, IL
+ Embedded Software Intern                                                                                    Jan 2026 – Present
+    • Developing firmware for the Electric Management Module (EMM) using C and Python; validating control logic via
+      hardware-in-the-loop (HIL) simulation to optimize various charging modes.
+    • Optimizing code in a multithreaded and FreeRTOS environment at the firmware level to increase fault tolerance and improve
+
+      telemetry.
+ Illini Electric Motorsports (UIUC FSAE Team)                                                                   Champaign, IL
+ BMS Software Lead                                                                                           Aug 2025 – Present
+    • Architecting the transition of the Battery Management System (BMS) firmware from a bare-metal environment to FreeRTOS
+      to enhance real-time performance, scalability, and task scheduling.
+    • Leading the microcontroller migration from STM32F4 to STM32H7 to leverage higher processing power for better modeling
+
+      algorithms and increased GPIO capabilities.
+    • Building a HIL (Hardware-in-the-Loop) test environment to automate BMS firmware validation using a LabJack and an
+
+      Arduino.
+    • Implementing Dual Extended Kalman Filters in MATLAB Simulink to improve State-of-Charge (SoC) and State-of-Health
+
+      (SoH) estimation accuracy by more than 15%.
+ AbbVie                                                                                                        Abbott Park, IL
+ Analytical R&D Software Intern                                                                            Jun 2025 – Aug 2025
+    • Engineered and deployed an internal RAG support agent using LangChain, OpenAI API, and Power Automate, reducing
+      information retrieval time for SOPs and equipment guides by over 50%.
+    • Developed a Python-based integration for the Microsoft Teams API, enabling seamless user interaction with the
+
+      LLM-powered support agent directly within chats.
+ Freelance Computer Builder                                                                                     Lincolnshire, IL
+ Designer and Technician                                                                                   Feb 2020 – May 2025
+    • Engineered, sourced, and assembled over $11,000 worth of custom PCs, specializing in small form factor (SFF) and
+      high-performance builds.
+    • Provided comprehensive client services, including consultation, system assembly, and deployment of Windows and Linux
+
+      operating systems.
+
+Projects
+ Custom CoreXY 3D Printer | Autodesk Inventor, C++, Klipper, Raspberry Pi
+    • Designed and constructed a high-performance CoreXY 3D printer from the ground up, featuring a rigid frame modeled in
+      Autodesk Inventor and custom 3D-printed components.
+    • Configured Klipper firmware on a Raspberry Pi 4 to drive salvaged Ender 3 electronics, achieving high-speed printing at over
+
+      1500 mm/s with 7000 mm/s2 acceleration.
+ W.A.N.D.E.R. Autonomous Robot | C++, ESP32, Autodesk Inventor
+    • Engineered a maze-solving autonomous robot featuring a custom 3D-printed chassis, integrating a gyroscope, wheel encoders,
+      and distance sensors for robust localization.
+    • Implemented a C++ pathfinding and SLAM algorithm on an ESP32 microcontroller to efficiently map and navigate unknown
+
+      maze environments.
+
+Skills
+ Languages: C, C++, Verilog, Python, MATLAB, Java, R, JavaScript
+ Hardware & Design: Altium, STM32 (H7/F4), ARM Cortex-M, HIL Testing, ESP32, Autodesk Inventor
+ Frameworks & Tools: FreeRTOS, PyTorch, LangChain, Git, WSL, Bazel, Linux, Docker, Simulink
+
