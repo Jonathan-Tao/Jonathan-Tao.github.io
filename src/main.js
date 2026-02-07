@@ -19,6 +19,17 @@ camera.position.setX(-3);
 
 renderer.render(scene, camera);
 
+// Handle window resize
+window.addEventListener('resize', () => {
+  // Update camera
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  // Update renderer
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+});
+
 //cool shape math
 
 const points = [];
@@ -299,5 +310,16 @@ const observer = new IntersectionObserver((entries) => {
 sections.forEach(section => {
   if (section.getAttribute('id')) {
     observer.observe(section);
+  }
+});
+
+// Force "Contact" active at bottom of page
+window.addEventListener('scroll', () => {
+  if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 50) {
+    dots.forEach(dot => dot.classList.remove('active'));
+    const contactDot = document.querySelector('.dot[data-section="contact"]');
+    if (contactDot) {
+      contactDot.classList.add('active');
+    }
   }
 });
