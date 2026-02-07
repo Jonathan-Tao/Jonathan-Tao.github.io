@@ -82,7 +82,7 @@ Array(1000).fill().forEach(addStar);
 
 // Background
 
-const backgroundTexture = new THREE.TextureLoader().load('/976156.png');
+const backgroundTexture = new THREE.TextureLoader().load('/space_bg.jpg');
 const backgroundGeometry = new THREE.SphereGeometry(500, 60, 40);
 backgroundGeometry.scale(-1, 1, 1);
 const backgroundMaterial = new THREE.MeshBasicMaterial({ map: backgroundTexture });
@@ -313,13 +313,39 @@ sections.forEach(section => {
   }
 });
 
-// Force "Contact" active at bottom of page
+// Force "Contact" active at bottom of page AND handle contact bar fade-in
 window.addEventListener('scroll', () => {
-  if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 50) {
-    dots.forEach(dot => dot.classList.remove('active'));
-    const contactDot = document.querySelector('.dot[data-section="contact"]');
-    if (contactDot) {
-      contactDot.classList.add('active');
+  // Contact bar fade-in logic
+  // Contact bar fade-in logic
+  const contactBar = document.getElementById('contact');
+
+  // Find Skills section by iterating text content of h2s
+  let skillsSection = null;
+  const sections = document.querySelectorAll('section');
+  for (const section of sections) {
+    const h2 = section.querySelector('h2');
+    if (h2 && h2.textContent.includes('Skills')) {
+      skillsSection = section;
+      break;
     }
   }
+
+  // Fallback to last section if not found
+  if (!skillsSection && sections.length > 0) {
+    skillsSection = sections[sections.length - 1];
+  }
+
+  if (contactBar && skillsSection) {
+    const fadeStart = 0; // Start fading in immediately
+    const fadeEnd = Math.max(skillsSection.offsetTop - window.innerHeight / 2, 0); // Fully visible when Skills is in middle of screen
+    const fadeDistance = Math.max(fadeEnd - fadeStart, 1); // Avoid divide by zero
+
+    let opacity = (window.scrollY - fadeStart) / fadeDistance;
+    opacity = Math.max(0, Math.min(1, opacity));
+
+    contactBar.style.opacity = opacity;
+    contactBar.style.pointerEvents = opacity > 0.1 ? 'auto' : 'none';
+  }
+
+
 });

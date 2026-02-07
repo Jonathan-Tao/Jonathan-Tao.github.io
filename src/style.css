@@ -1,4 +1,4 @@
-@import url("https://use.typekit.net/jmk3xov.css");
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
 canvas {
   position: fixed;
@@ -8,10 +8,12 @@ canvas {
 
 
 :root {
-  --dark-bg: rgba(15, 15, 15, 0.8);
+  --dark-bg: rgba(15, 15, 15, 0.3);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-highlight: rgba(255, 255, 255, 0.08);
   --spacing: 350px;
 
-  font-family: brandon-grotesque, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 400;
   font-style: normal;
 }
@@ -33,10 +35,22 @@ main {
 h1,
 h2,
 h3,
-blockquote {
-  font-family: elevon, sans-serif;
+blockquote,
+footer {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 700;
   font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+h2 {
+  font-size: 2rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  border-bottom: 2px solid white;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: inline-block;
 }
 
 canvas {
@@ -48,22 +62,74 @@ canvas {
 
 
 header {
-  background: var(--dark-bg);
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0.02) 100%);
   grid-column: 2 / span 5;
   font-size: 2.5rem;
   padding: 2rem;
-  margin-bottom: 250px;
+  margin-bottom: 50px;
   border-radius: 20px;
+  border: 2px solid var(--glass-border);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px) saturate(200%);
+  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  position: relative;
+}
+
+header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 100%);
+  border-radius: 20px 20px 0 0;
+  pointer-events: none;
 }
 
 section {
   grid-column: 2 / 8;
   padding: 1rem;
-  background: var(--dark-bg);
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0.02) 100%);
   font-size: 1.25rem;
   line-height: 1.5;
   margin-bottom: var(--spacing);
   border-radius: 20px;
+  border: 2px solid var(--glass-border);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px) saturate(200%);
+  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  position: relative;
+}
+
+section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 100%);
+  border-radius: 20px 20px 0 0;
+  pointer-events: none;
 }
 
 blockquote {
@@ -215,4 +281,134 @@ html {
   opacity: 1;
   visibility: visible;
   right: 40px;
+}
+
+@media (max-width: 768px) {
+
+  /* Hide scroll tracker on mobile */
+  #scroll-tracker {
+    display: none;
+  }
+
+  /* Adjust main grid */
+  main {
+    grid-template-columns: 1fr;
+    padding: 60px 0px;
+  }
+
+  /* Make sections span full width with some margin */
+  header,
+  section,
+  blockquote,
+  .left,
+  .right {
+    grid-column: 1 / -1;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    width: auto;
+  }
+
+  /* Adjust Typography */
+  header {
+    font-size: 1.5rem;
+    padding: 1.5rem;
+    margin-bottom: 50px;
+  }
+
+  h1 {
+    font-size: 4rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  section {
+    font-size: 1rem;
+    padding: 1rem;
+    margin-bottom: 200px;
+  }
+
+  blockquote {
+    margin-bottom: 200px;
+  }
+
+  blockquote p {
+    font-size: 1.5rem;
+    /* Significantly reduced from 4rem */
+    padding: 0.5rem;
+  }
+
+  /* Adjust Videos */
+  video {
+    width: 100%;
+    height: auto;
+  }
+
+  /* Adjust spacing for entries */
+  .left,
+  .right {
+    margin-bottom: 30px;
+  }
+
+  .project-header {
+    margin-bottom: 30px;
+  }
+
+  .last-entry {
+    margin-bottom: 200px;
+    /* Reduced from 350px for mobile */
+  }
+}
+
+/* Persistent Contact Bar */
+#contact {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.04) 100%);
+  color: white;
+  text-align: center;
+  padding: 1rem 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  border-top: 2px solid var(--glass-border);
+  box-shadow:
+    0 -8px 32px rgba(0, 0, 0, 0.4),
+    0 -2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(25px) saturate(200%);
+  -webkit-backdrop-filter: blur(25px) saturate(200%);
+}
+
+#contact h2 {
+  margin: 0;
+  border: none;
+  font-size: 1.5rem;
+  text-shadow: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+#contact .social-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+#contact a {
+  color: white;
+  text-decoration: none;
+}
+
+#contact a:hover i {
+  color: #ddd;
 }
