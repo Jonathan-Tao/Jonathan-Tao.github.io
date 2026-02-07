@@ -16,9 +16,25 @@
 
   <canvas id="bg"></canvas>
 
+  <nav id="scroll-tracker">
+    <ul>
+      <li><a href="#home" class="dot" data-section="home"><span class="label">Home</span></a></li>
+      <li class="line"></li>
+      <li><a href="#education" class="dot" data-section="education"><span class="label">Education</span></a></li>
+      <li class="line"></li>
+      <li><a href="#projects" class="dot" data-section="projects"><span class="label">Projects</span></a></li>
+      <li class="line"></li>
+      <li><a href="#experience" class="dot" data-section="experience"><span class="label">Experience</span></a></li>
+      <li class="line"></li>
+      <li><a href="#skills" class="dot" data-section="skills"><span class="label">Skills</span></a></li>
+      <li class="line"></li>
+      <li><a href="#contact" class="dot" data-section="contact"><span class="label">Contact</span></a></li>
+    </ul>
+  </nav>
+
   <main>
 
-    <header>
+    <header id="home">
       <h1>Jonathan Tao</h1>
     </header>
 
@@ -27,7 +43,7 @@
       <p>Computer Engineering @ UIUC</p>
     </blockquote>
 
-    <section>
+    <section id="education">
       <h2>Education</h2>
       <p>University of Illinois Urbana-Champaign</p>
       <p>B.S. in Computer Engineering, Minor in Semiconductor Engineering</p>
@@ -41,7 +57,7 @@
 
 
 
-    <section class="left project-header">
+    <section id="projects" class="left project-header">
       <h2>Projects</h2>
     </section>
 
@@ -76,7 +92,7 @@
         SLAM algorithm on an ESP32 microcontroller to efficiently map and navigate unknown maze environments.</p>
     </section>
 
-    <section class="right">
+    <section id="experience" class="right">
       <h2>Experience</h2>
       <p><b>Rivian</b></p>
       <p>Embedded Software Intern (Jan 2026 – Present)</p>
@@ -105,14 +121,14 @@
         and deployment of Windows and Linux operating systems.</p>
     </section>
 
-    <section class="right">
+    <section id="skills" class="right">
       <h2>Skills</h2>
       <p><b>Languages:</b> C, C++, Verilog, Python, MATLAB, Java, R, JavaScript</p>
       <p><b>Hardware & Design:</b> Altium, STM32 (H7/F4), ARM Cortex-M, HIL Testing, ESP32, Autodesk Inventor</p>
       <p><b>Frameworks & Tools:</b> FreeRTOS, PyTorch, LangChain, Git, WSL, Bazel, Linux, Docker, Simulink</p>
     </section>
 
-    <section class="right">
+    <section id="contact" class="right">
       <h2>Contact Me</h2>
       <a href="mailto:21jonathantao@gmail.com"><i class="fas fa-envelope fa-3x"></i></a>
       <a href="https://www.linkedin.com/in/jonathan-x-tao"><i class="fab fa-linkedin fa-3x"></i></a>

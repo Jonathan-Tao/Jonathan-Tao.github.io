@@ -80,7 +80,7 @@ scene.add(backgroundSphere);
 
 // Avatar
 
-const jeffTexture = new THREE.TextureLoader().load('/currentPhoto.JPG', function(texture) {
+const jeffTexture = new THREE.TextureLoader().load('/currentPhoto.JPG', function (texture) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   const aspectRatio = texture.image.width / texture.image.height;
@@ -204,7 +204,7 @@ function moveCamera() {
   camera.position.x = t * -0.0002;
   camera.rotation.y = t * -0.0002;
 
-  
+
 }
 
 document.body.onscroll = moveCamera;
@@ -269,3 +269,35 @@ function setupVideoAutoplay(videoId) {
 
 setupVideoAutoplay('corexy-video');
 setupVideoAutoplay('wander-video');
+
+// Scroll Tracker Logic
+const sections = document.querySelectorAll('header, section');
+const dots = document.querySelectorAll('#scroll-tracker .dot');
+
+const observerOptions = {
+  root: null,
+  rootMargin: '-50% 0px -50% 0px', // Trigger when section is in the middle of the screen
+  threshold: 0
+};
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.getAttribute('id');
+      if (id) {
+        dots.forEach(dot => {
+          dot.classList.remove('active');
+          if (dot.getAttribute('data-section') === id) {
+            dot.classList.add('active');
+          }
+        });
+      }
+    }
+  });
+}, observerOptions);
+
+sections.forEach(section => {
+  if (section.getAttribute('id')) {
+    observer.observe(section);
+  }
+});

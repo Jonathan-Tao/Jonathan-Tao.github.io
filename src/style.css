@@ -25,12 +25,15 @@ main {
   width: 100%;
   margin: 0px auto;
   padding: 120px 0px;
-  
+
   display: grid;
   grid-template-columns: repeat(12, 1fr);
 }
 
-h1, h2, h3, blockquote {
+h1,
+h2,
+h3,
+blockquote {
   font-family: elevon, sans-serif;
   font-weight: 700;
   font-style: normal;
@@ -44,50 +47,160 @@ canvas {
 
 
 
-  header {
-    background: var(--dark-bg);
-    grid-column: 2 / span 5;
-    font-size: 2.5rem;
-    padding: 2rem;
-    margin-bottom: 250px;
-  }
+header {
+  background: var(--dark-bg);
+  grid-column: 2 / span 5;
+  font-size: 2.5rem;
+  padding: 2rem;
+  margin-bottom: 250px;
+}
 
-  section {
-    grid-column: 2 / 8;
-    padding: 1rem;
-    background: var(--dark-bg);
-    font-size: 1.25rem;
-    line-height: 1.5;
-    margin-bottom: var(--spacing);
-  }
+section {
+  grid-column: 2 / 8;
+  padding: 1rem;
+  background: var(--dark-bg);
+  font-size: 1.25rem;
+  line-height: 1.5;
+  margin-bottom: var(--spacing);
+}
 
-  blockquote {
-    margin: 0;
-    padding: 0;
-    grid-column: 2 / span 9;
-    margin-bottom: var(--spacing);
-  }
+blockquote {
+  margin: 0;
+  padding: 0;
+  grid-column: 2 / span 9;
+  margin-bottom: var(--spacing);
+}
 
-  blockquote p {
-    color: black;
-    background-color: white;
-    font-size: 4rem;
-    display: inline;
-    line-height: 1.2;
-  }
+blockquote p {
+  color: black;
+  background-color: white;
+  font-size: 4rem;
+  display: inline;
+  line-height: 1.2;
+}
 
-  .left {
-    grid-column: 6 / 12;
-  }
+.left {
+  grid-column: 6 / 12;
+}
 
-  .right {
-    grid-column: 2 / 8;
-  }
+.right {
+  grid-column: 2 / 8;
+}
 
-  .project-header {
-    margin-bottom: 50px;
-  }
+.project-header {
+  margin-bottom: 50px;
+}
 
-  .right a i {
-    color: white;
-  }
+.right a i {
+  color: white;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scroll Tracker Styles */
+#scroll-tracker {
+  position: fixed;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  height: 60vh;
+  /* Dynamic height based on viewport */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+#scroll-tracker ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  /* Distribute items evenly */
+  height: 100%;
+  width: 50px;
+  /* Wider hit area for proximity */
+}
+
+/* Hit area wrapper for dots */
+#scroll-tracker li {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+#scroll-tracker .dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 2px solid transparent;
+}
+
+/* Expand hit area for dots using pseudo-element */
+#scroll-tracker .dot::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  bottom: -15px;
+  left: -20px;
+  right: -20px;
+  border-radius: 50%;
+}
+
+/* "Near" detection: Hovering the list item or the dot triggers the effect */
+#scroll-tracker li:hover .dot,
+#scroll-tracker .dot:hover,
+#scroll-tracker .dot.active {
+  background-color: #fff;
+  transform: scale(1.3);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+#scroll-tracker .line {
+  width: 2px;
+  flex-grow: 1;
+  /* Make lines take up remaining space */
+  background-color: rgba(255, 255, 255, 0.2);
+  margin: 0;
+  min-height: 20px;
+}
+
+#scroll-tracker .label {
+  position: absolute;
+  right: 35px;
+  /* Position moved slightly left to account for wider container */
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-family: elevon, sans-serif;
+  font-size: 0.9rem;
+  pointer-events: none;
+  color: #ffffff;
+  /* Ensure text is white */
+  font-weight: bold;
+}
+
+/* Show label when hovering the list item (proximity) */
+#scroll-tracker li:hover .label,
+#scroll-tracker .dot:hover .label {
+  opacity: 1;
+  visibility: visible;
+  right: 40px;
+}
