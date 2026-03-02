@@ -60,6 +60,36 @@
     </section>
 
     <section class="left">
+      <p><b>Morphi (HackIllinois 2026)</b> — <a href="https://devpost.com/software/morphi" target="_blank"
+          style="text-decoration: underline; color: inherit;">View on Devpost <i class="fas fa-external-link-alt"
+            style="font-size: 0.8em;"></i></a> | <a href="https://github.com/Jonathan-Tao/hackillinois-2026"
+          target="_blank" style="text-decoration: underline; color: inherit;">View on GitHub <i class="fab fa-github"
+            style="font-size: 0.8em;"></i></a></p>
+      <p>Python, Modal, vLLM, PyTorch, LoRA, Qwen3-VL, React Native</p>
+      <br>
+      <iframe width="640" height="360" src="https://www.youtube.com/embed/p8PUMUjyXiI" title="Morphi Pitch Video"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      <br>
+      <br>
+      <p>Morphi is an AI-powered sports coaching mobile app we built at HackIllinois 2026. Built with React Native, it
+        lets users record short videos of their golf swings, basketball shots, or other physical activities, and get
+        real-time, precision biomechanical feedback via voice narration and visual overlays.</p>
+      <br>
+      <p>This project was heavily focused on pushing the envelope of serverless AI infra and knowledge distillation. We
+        needed the app to understand intricate human poses, but generic Vision-Language Models (VLMs) weren't precise
+        enough for sports coaching. To bridge this gap, I designed a specialized data curation pipeline combining YOLO
+        pose estimation with Gemini 3.0 Flash to synthesize over 2,300 expert-quality coaching examples. We then trained
+        a custom LoRA adapter for a massive 32B parameter Qwen3-VL model on 8x H200 GPUs to teach the model how to
+        correct specific joints based on proper sports mechanics.</p>
+      <br>
+      <p>To make the experience seamless on mobile, I engineered our backend on Modal. We utilized vLLM across a 4-GPU
+        cluster to handle multi-modal inference efficiently, which slashed our full video processing and AI generation
+        latency from over 3 minutes down to under 24 seconds, allowing for a tight, engaging user loop.</p>
+    </section>
+
+    <section class="left">
       <p><b>Custom CoreXY 3D Printer</b></p>
       <p>Designed and constructed a high-performance CoreXY 3D printer from the ground up, featuring a rigid frame
         modeled in Autodesk Inventor and custom 3D-printed components.</p>
