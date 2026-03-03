@@ -11,7 +11,7 @@
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <title>Jonathan's Website</title>
   <script type="module" crossorigin src="/assets/index.11e33e67.js"></script>
-  <link rel="stylesheet" href="/assets/index.82e2dd78.css">
+  <link rel="stylesheet" href="/assets/index.ea37b2d5.css">
 </head>
 
 <body>
@@ -62,7 +62,8 @@
     </section>
 
     <section class="left">
-      <p><b>Morphi (HackIllinois 2026)</b> — <a href="https://devpost.com/software/morphi" target="_blank"
+      <p><b>Morphi (Top 7 of 226 HackVoyager Finalist, HackIllinois 2026)</b> — <a
+          href="https://devpost.com/software/morphi" target="_blank"
           style="text-decoration: underline; color: inherit;">View on Devpost <i class="fas fa-external-link-alt"
             style="font-size: 0.8em;"></i></a> | <a href="https://github.com/SupremeDonut/hackillinois-2026"
           target="_blank" style="text-decoration: underline; color: inherit;">View on GitHub <i class="fab fa-github"
@@ -75,20 +76,16 @@
         referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
       <br>
       <br>
-      <p>Morphi is an AI-powered sports coaching mobile app we built at HackIllinois 2026. Built with React Native, it
-        lets users record short videos of their golf swings, basketball shots, or other physical activities, and get
-        real-time, precision biomechanical feedback via voice narration and visual overlays.</p>
+      <p>Morphi is an AI-powered sports coaching mobile app built with React Native that provides real-time, precision
+        biomechanical feedback via voice narration and visual overlays.</p>
       <br>
-      <p>This project was heavily focused on pushing the envelope of serverless AI infra and knowledge distillation. We
-        needed the app to understand intricate human poses, but generic Vision-Language Models (VLMs) weren't precise
-        enough for sports coaching. To bridge this gap, I designed a specialized data curation pipeline combining YOLO
-        pose estimation with Gemini 3.0 Flash to synthesize over 2,300 expert-quality coaching examples. We then trained
-        a custom LoRA adapter for a massive 32B parameter Qwen3-VL model on 8x H200 GPUs to teach the model how to
-        correct specific joints based on proper sports mechanics.</p>
+      <p>For this project, I architected the overall backend data pipeline and authored a custom data processing script
+        to curate training data. I utilized Gemini 3.0 Flash Thinking to distill over 2,300 labeled examples for
+        fine-tuning a 32B vision-language model via LoRA on 8x H200 GPUs.</p>
       <br>
-      <p>To make the experience seamless on mobile, I engineered our backend on Modal. We utilized vLLM across a 4-GPU
-        cluster to handle multi-modal inference efficiently, which slashed our full video processing and AI generation
-        latency from over 3 minutes down to under 24 seconds, allowing for a tight, engaging user loop.</p>
+      <p>To support this at scale, I engineered our serverless backend infrastructure on Modal, optimizing multi-modal
+        inference using vLLM across a 4-GPU cluster. This architecture reduced full video processing and inference
+        latency from 3 minutes down to under 24 seconds.</p>
     </section>
 
     <section class="left">
@@ -127,37 +124,61 @@
     </section>
 
     <section class="right">
-      <p><b>Rivian</b></p>
-      <p>Embedded Software Intern (Jan 2026 – Present)</p>
-      <p>Developing firmware for the Electric Management Module (EMM) using C and Python; validating control logic via
-        hardware-in-the-loop (HIL) simulation to optimize various charging modes. Optimizing code in a multithreaded and
-        FreeRTOS environment at the firmware level to increase fault tolerance and improve telemetry.</p>
+      <div class="experience-card">
+        <div class="experience-text">
+          <p><b>Rivian</b></p>
+          <p>Embedded Software Intern (Jan 2026 – Present)</p>
+          <br>
+          <p>As an Embedded Software Intern at Rivian, I develop firmware for the Electric Management Module (EMM) using
+            C and Python. A key part of my role involves validating control logic through robust hardware-in-the-loop
+            (HIL) simulations to optimize various charging modes.</p>
+          <br>
+          <p>Working within a multithreaded FreeRTOS environment, I focus heavily on optimizing code at the firmware
+            level. These efforts have directly contributed to increased fault tolerance and vastly improved telemetry
+            systems.</p>
+        </div>
+        <img src="/rivian.jpeg" alt="Rivian Logo" class="experience-logo">
+      </div>
     </section>
 
     <section class="right">
-      <p><b>Illini Electric Motorsports</b></p>
-      <p>BMS Software Lead (Aug 2025 – Present)</p>
-      <p>Architecting the transition of the Battery Management System (BMS) firmware from a bare-metal environment to
-        FreeRTOS to enhance real-time performance, scalability, and task scheduling. Leading the microcontroller
-        migration from STM32F4 to STM32H7. Building a HIL (Hardware-in-the-Loop) test environment to automate BMS
-        firmware validation. Implementing Dual Extended Kalman Filters in MATLAB Simulink to improve State-of-Charge
-        (SoC) and State-of-Health (SoH) estimation accuracy by more than 15%.</p>
-    </section>
-
-    <section class="right">
-      <p><b>AbbVie</b></p>
-      <p>Analytical R&D Software Intern (Jun 2025 – Aug 2025)</p>
-      <p>Engineered and deployed an internal RAG support agent using LangChain, OpenAI API, and Power Automate, reducing
-        information retrieval time for SOPs and equipment guides by over 50%. Developed a Python-based integration for
-        the Microsoft Teams API, enabling seamless user interaction with the LLM-powered support agent.</p>
+      <div class="experience-card">
+        <div class="experience-text">
+          <p><b>Illini Electric Motorsports (UIUC FSAE)</b></p>
+          <p>BMS Software Lead (Aug 2025 – Present)</p>
+          <br>
+          <p>At Illini Electric Motorsports, I lead the BMS software team. I architected the transition of our Battery
+            Management System firmware from a bare-metal environment to FreeRTOS, which significantly enhanced our
+            real-time performance, scalability, and task scheduling. I'm also steering our microcontroller migration
+            from the STM32F4 to the STM32H7, unlocking higher processing power for advanced modeling algorithms and
+            expanding our GPIO capabilities.</p>
+          <br>
+          <p>To ensure reliability, I built a comprehensive HIL test environment using a LabJack and an Arduino to
+            automate our BMS firmware validation. Furthermore, I developed and implemented Dual Extended Kalman Filters
+            in MATLAB Simulink, which improved our State-of-Charge (SoC) and State-of-Health (SoH) estimation accuracy
+            by over 15%.</p>
+        </div>
+        <img src="/illinois.png" alt="Illini Motorsports Logo" class="experience-logo illinois-logo">
+      </div>
     </section>
 
     <section class="right last-entry">
-      <p><b>Freelance Computer Builder</b></p>
-      <p>Designer and Technician (Feb 2020 – May 2025)</p>
-      <p>Engineered, sourced, and assembled over $11,000 worth of custom PCs, specializing in small form factor (SFF)
-        and high-performance builds. Provided comprehensive client services, including consultation, system assembly,
-        and deployment of Windows and Linux operating systems.</p>
+      <div class="experience-card">
+        <div class="experience-text">
+          <p><b>AbbVie</b></p>
+          <p>Analytical R&D Software Intern (Jun 2025 – Aug 2025)</p>
+          <br>
+          <p>During my time at AbbVie as an Analytical R&D Software Intern, I engineered and deployed an internal
+            Retrieval-Augmented Generation (RAG) support agent. By leveraging LangChain, the OpenAI API, and Power
+            Automate, I successfully reduced the information retrieval time for critical SOPs and equipment guides by
+            over 50%.</p>
+          <br>
+          <p>To make this tool easily accessible to the team, I developed a Python-based integration utilizing the
+            Microsoft Teams API. This integration enabled seamless user interaction with the LLM-powered support agent
+            directly within their regular chat environment.</p>
+        </div>
+        <img src="/abbvie.svg" alt="AbbVie Logo" class="experience-logo">
+      </div>
     </section>
 
     <section id="skills" class="right">
