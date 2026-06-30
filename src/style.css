@@ -185,9 +185,14 @@ main {
   text-decoration: none;
 }
 
+.gallery-section {
+  width: 100%;
+}
+
 .gallery-marquee {
   overflow: hidden;
   width: 100%;
+  padding-inline: 1.5rem;
 }
 
 .gallery-marquee-track {
@@ -195,6 +200,7 @@ main {
   gap: 3rem;
   width: max-content;
   padding: 0.25rem 0;
+  will-change: transform;
   animation: gallery-marquee-scroll var(--marquee-duration, 40s) linear infinite;
 }
 
@@ -215,6 +221,17 @@ main {
 .gallery-marquee-track .gallery-card {
   flex: 0 0 clamp(140px, 26vw, 200px);
   width: clamp(140px, 26vw, 200px);
+}
+
+@media (min-width: 1024px) {
+  .gallery-marquee-track .gallery-card {
+    flex: 0 0 200px;
+    width: 200px;
+  }
+
+  .gallery-marquee-track {
+    gap: 3.5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
