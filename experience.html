@@ -14,7 +14,7 @@
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <title>Experience — Jonathan Tao</title>
   <script type="module" crossorigin src="/assets/main.df25abdf.js"></script>
-  <link rel="stylesheet" href="/assets/main.1d746e48.css">
+  <link rel="stylesheet" href="/assets/main.536f75af.css">
 </head>
 
 <body class="has-sidebar page-inner page-experience">
@@ -63,32 +63,35 @@
         <div id="rivian" class="experience-card">
           <div class="experience-text">
             <h2>Rivian</h2>
-            <p class="role">Embedded Software Intern (Jan 2026 – Present)</p>
-            <p>As an Embedded Software Intern at Rivian, I develop firmware for the Electric Management Module (EMM)
-              using C and Python. A key part of my role involves validating control logic through robust
-              hardware-in-the-loop (HIL) simulations to optimize various charging modes.</p>
-            <p>Working within a multithreaded FreeRTOS environment, I focus heavily on optimizing code at the firmware
-              level. These efforts have directly contributed to increased fault tolerance and vastly improved telemetry
-              systems.</p>
+            <p class="role">Embedded Software Intern (Jan 2026 – Aug 2026)</p>
+            <p>Engineering firmware for the Electric Management Module (EMM) in C and Python to control the OBC, PFC,
+              and DCDC, while optimizing multithreaded FreeRTOS code to increase fault tolerance and improve telemetry.</p>
+            <p>Leveraging GitLab CI/CD pipelines to execute automated HIL, SIL, and unit tests, and building Ethernet,
+              CAN, UDS, and XCP-based diagnostic tools in Python.</p>
           </div>
           <div class="ascii-media ascii-media-logo" data-ascii-media data-ascii-cell="4">
-            <img src="/rivian.jpeg" alt="Rivian Logo" class="experience-logo ascii-media-source" decoding="async">
+            <img src="/rivian-transparent.png" alt="Rivian Logo" class="experience-logo ascii-media-source"
+              decoding="async">
           </div>
         </div>
 
         <div id="illini-motorsports" class="experience-card">
           <div class="experience-text">
             <h2>Illini Electric Motorsports (UIUC FSAE)</h2>
-            <p class="role">BMS Software Lead (Aug 2025 – Present)</p>
-            <p>At Illini Electric Motorsports, I lead the BMS software team. I architected the transition of our
-              Battery Management System firmware from a bare-metal environment to FreeRTOS, which significantly
-              enhanced our real-time performance, scalability, and task scheduling. I'm also steering our microcontroller
-              migration from the STM32F4 to the STM32H7, unlocking higher processing power for advanced modeling
-              algorithms and expanding our GPIO capabilities.</p>
-            <p>To ensure reliability, I built a comprehensive HIL test environment using a LabJack and an Arduino to
-              automate our BMS firmware validation. Furthermore, I developed and implemented Dual Extended Kalman Filters
-              in MATLAB Simulink, which improved our State-of-Charge (SoC) and State-of-Health (SoH) estimation
-              accuracy by over 15%.</p>
+            <h3>Driverless Lead</h3>
+            <p class="role">Jul 2026 – Present</p>
+            <p>Developing a C++/ROS 2 LiDAR-only perception pipeline for an Ouster OS1, using Euclidean clustering for
+              35-meter object detection and designing a 1D CNN to classify cone colors from intensity data on a Jetson
+              AGX.</p>
+            <p>Implementing Delaunay triangulation for dynamic path planning with custom pure-pursuit lateral and speed
+              controllers, and prototyping a driverless integration PCB in Altium with CAN, hardware watchdogs, and
+              critical safety features.</p>
+            <h3>BMS Project Lead</h3>
+            <p class="role">Aug 2025 – Present</p>
+            <p>Architecting the BMS firmware transition from bare metal to FreeRTOS and leading the STM32F4-to-STM32H7
+              migration to improve real-time performance, scalability, processing power, and GPIO capability.</p>
+            <p>Building an automated HIL validation environment in Python and C++ with LabJack and Arduino, and writing
+              DMA-based SPI drivers for a TI ADC and LTC6811 cell monitor using bitfield structs.</p>
           </div>
           <div class="ascii-media ascii-media-logo" data-ascii-media data-ascii-cell="4">
             <img src="/illinois.png" alt="Illini Motorsports Logo" class="experience-logo ascii-media-source" loading="lazy" decoding="async">
@@ -99,13 +102,10 @@
           <div class="experience-text">
             <h2>AbbVie</h2>
             <p class="role">Analytical R&amp;D Software Intern (Jun 2025 – Aug 2025)</p>
-            <p>During my time at AbbVie as an Analytical R&amp;D Software Intern, I engineered and deployed an internal
-              Retrieval-Augmented Generation (RAG) support agent. By leveraging LangChain, the OpenAI API, and Power
-              Automate, I successfully reduced the information retrieval time for critical SOPs and equipment guides by
-              over 50%.</p>
-            <p>To make this tool easily accessible to the team, I developed a Python-based integration utilizing the
-              Microsoft Teams API. This integration enabled seamless user interaction with the LLM-powered support agent
-              directly within their regular chat environment.</p>
+            <p>Engineered and deployed an internal RAG support agent using LangChain, the OpenAI API, and Power Automate,
+              reducing information retrieval time for SOPs and equipment guides by over 50%.</p>
+            <p>Developed a Python integration for the Microsoft Teams API, enabling seamless interaction with the
+              LLM-powered support agent directly within chats.</p>
           </div>
           <div class="ascii-media ascii-media-logo" data-ascii-media data-ascii-cell="4">
             <img src="/abbvie-clean.svg" alt="AbbVie Logo" class="experience-logo ascii-media-source" loading="lazy" decoding="async">
