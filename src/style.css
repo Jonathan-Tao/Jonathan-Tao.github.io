@@ -644,6 +644,17 @@ body.page-inner .page {
   padding: 6px;
 }
 
+#rivian .ascii-media-logo .ascii-media-source,
+#rivian .ascii-media-logo:hover .ascii-media-source,
+#rivian .ascii-media-logo:focus-within .ascii-media-source {
+  opacity: 0;
+}
+
+#rivian .ascii-media-logo:hover .ascii-media-canvas,
+#rivian .ascii-media-logo:focus-within .ascii-media-canvas {
+  opacity: 1;
+}
+
 .ascii-media-logo .ascii-media-canvas {
   mix-blend-mode: multiply;
   opacity: 1;
