@@ -338,6 +338,7 @@ export async function initAsciiPortrait(mount) {
     letterHi = ui.letterHi;
     hiCols = ui.hiCols;
     hiRows = ui.hiRows;
+    document.body.classList.toggle('ascii-nav-embedded', regions.length >= 4);
   }
 
   function hitTest(px, py) {
@@ -593,7 +594,5 @@ export async function initAsciiPortrait(mount) {
   });
 
   mount.classList.add('ascii-ready');
-  if (regions.length >= 4) {
-    document.body.classList.add('ascii-nav-embedded');
-  }
+  document.body.classList.toggle('ascii-nav-embedded', regions.length >= 4);
 }

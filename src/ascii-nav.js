@@ -57,15 +57,18 @@ export function buildAsciiNav(cols, rows) {
   context.textBaseline = 'top';
   context.textAlign = 'left';
 
-  const navX = Math.round(cols * 0.18);
+  const compact = window.innerWidth <= 600;
+  const navX = compact ? Math.max(3, Math.round(cols * 0.1)) : Math.round(cols * 0.18);
+  const fontSize = compact ? 3.35 : 4.5;
+  const rowStep = compact ? 4.8 : 5.4;
   let cursorY = 5;
 
   readNavItems().forEach((item, id) => {
     context.fillStyle = '#000';
     context.fillRect(0, 0, width, height);
     context.fillStyle = '#fff';
-    context.font = `${4.5 * UI_SCALE}px "Share Tech Mono", "Courier New", monospace`;
-    context.letterSpacing = `${4.5 * UI_SCALE * 0.22}px`;
+    context.font = `${fontSize * UI_SCALE}px "Share Tech Mono", "Courier New", monospace`;
+    context.letterSpacing = `${fontSize * UI_SCALE * 0.22}px`;
     context.fillText(item.label, navX * UI_SCALE, cursorY * UI_SCALE);
     const { data } = context.getImageData(0, 0, width, height);
 
@@ -125,7 +128,7 @@ export function buildAsciiNav(cols, rows) {
         maxY: Math.min(rows - 1, maxY + 1),
       });
     }
-    cursorY += 5.4;
+    cursorY += rowStep;
   });
 
   return {

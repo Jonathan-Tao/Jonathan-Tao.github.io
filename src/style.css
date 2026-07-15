@@ -410,9 +410,26 @@ body.nav-open .sidebar-toggle {
   transform: translate(0, 0) !important;
 }
 
+body.ascii-nav-embedded .site-sidebar {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  pointer-events: none;
+}
+
+body.page-inner.ascii-nav-embedded .ascii-field {
+  pointer-events: auto;
+}
+
 /* The semantic sidebar remains in the DOM, while the shared canvas navigation
    becomes the visible desktop control on every page. */
-@media (min-width: 861px) {
+@media (min-width: 1101px) {
   body.ascii-nav-embedded .site-sidebar {
     position: fixed;
     width: 1px;
@@ -516,6 +533,8 @@ body.page-inner .page {
   position: relative;
   width: 100%;
   height: 100vh;
+  height: 100svh;
+  height: 100dvh;
   min-height: 28rem;
   overflow: hidden;
 }
@@ -1297,7 +1316,7 @@ body.page-education strong {
 
 /* Responsive */
 
-@media (max-width: 860px) {
+@media (max-width: 1100px) {
   :root {
     --sidebar-width: 0px;
   }
@@ -1329,6 +1348,8 @@ body.page-education strong {
     background: rgba(244, 243, 239, 0.94);
     border: 1px solid var(--text);
     padding: 0.65rem 0.75rem;
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
   }
 
   body.nav-open .site-nav a {
@@ -1371,12 +1392,23 @@ body.page-education strong {
     padding-top: calc(var(--header-height) + 0.5rem);
   }
 
+  body.page-inner.ascii-nav-embedded .site-content {
+    padding-top: 20rem;
+    pointer-events: none;
+  }
+
+  body.page-inner.ascii-nav-embedded .page {
+    pointer-events: auto;
+  }
+
   body.page-home .site-content {
     padding-top: 0;
   }
 
   .ascii-hero {
     height: 100vh;
+    height: 100svh;
+    height: 100dvh;
     min-height: 22rem;
   }
 
@@ -1399,14 +1431,49 @@ body.page-education strong {
   .experience-card {
     display: flex;
     flex-direction: column-reverse;
-    align-items: center;
-    text-align: center;
+    align-items: stretch;
+    text-align: left;
   }
 
   .education-header {
     display: flex;
     flex-direction: column-reverse;
-    align-items: center;
-    text-align: center;
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .experience-card .ascii-media-logo,
+  .education-header .ascii-media-logo {
+    align-self: center;
+  }
+
+  .contact-list a {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 1100px) and (orientation: landscape) and (max-height: 600px) {
+  .ascii-hero {
+    min-height: 100dvh;
+  }
+
+  body.nav-open .site-nav {
+    margin-top: 0.35rem;
+  }
+
+  .site-nav {
+    gap: 0.1rem;
+  }
+
+  .site-nav a {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    font-size: 0.9rem;
+  }
+
+  body.nav-open .sidebar-footer {
+    padding-top: 0.25rem;
+    padding-bottom: 0;
   }
 }

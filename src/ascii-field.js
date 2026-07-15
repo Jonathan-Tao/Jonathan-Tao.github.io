@@ -68,6 +68,7 @@ export async function initAsciiField(mount) {
   let rows = 0;
   let field = null;
   let nav = null;
+  let embeddedNav = false;
   let hitBoxes = [];
   let hoveredId = -999;
   let pointer = { x: -9999, y: -9999, active: false };
@@ -104,7 +105,11 @@ export async function initAsciiField(mount) {
     }
 
     nav = buildAsciiNav(cols, rows);
-    document.body.classList.toggle('ascii-nav-embedded', nav.regions.length >= 4);
+    embeddedNav = true;
+    document.body.classList.toggle(
+      'ascii-nav-embedded',
+      embeddedNav && nav.regions.length >= 4,
+    );
   }
 
   function activeRippleField(nowSeconds) {
@@ -153,7 +158,9 @@ export async function initAsciiField(mount) {
     const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff5f05';
     const rippleField = activeRippleField((now - start) / 1000);
 
-    hitBoxes = buildNavHitBoxes(nav.regions, cellW, cellH, motion, reducedMotion);
+    hitBoxes = embeddedNav
+      ? buildNavHitBoxes(nav.regions, cellW, cellH, motion, reducedMotion)
+      : [];
     const hit = pointer.active ? hitTestAsciiNav(hitBoxes, pointer.x, pointer.y) : null;
     hoveredId = hit ? hit.id : -999;
     canvas.style.cursor = hit ? 'pointer' : 'crosshair';
@@ -181,7 +188,7 @@ export async function initAsciiField(mount) {
           const edge = x === hoveredRegion.minX || x === hoveredRegion.maxX
             || y === hoveredRegion.minY || y === hoveredRegion.maxY;
           brightness = edge ? 0.05 : 0.92;
-        } else if (nav.halo[index] > 0.2) {
+        } else if (embeddedNav && nav.halo[index] > 0.2) {
           brightness = Math.max(brightness, 0.96);
         }
         brightness = Math.min(1, Math.max(0, brightness));
@@ -197,16 +204,18 @@ export async function initAsciiField(mount) {
       }
     }
 
-    drawAsciiNav(context, nav, {
-      cellW,
-      cellH,
-      motion,
-      reducedMotion,
-      hoveredId,
-      foreground,
-      accent,
-      rippleField,
-    });
+    if (embeddedNav) {
+      drawAsciiNav(context, nav, {
+        cellW,
+        cellH,
+        motion,
+        reducedMotion,
+        hoveredId,
+        foreground,
+        accent,
+        rippleField,
+      });
+    }
 
     context.globalAlpha = 1;
     window.dispatchEvent(new CustomEvent('ascii-frame', { detail: motion }));
