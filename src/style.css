@@ -423,6 +423,10 @@ body.ascii-nav-embedded .site-sidebar {
   pointer-events: none;
 }
 
+body.page-home .site-sidebar {
+  display: none !important;
+}
+
 body.page-inner.ascii-nav-embedded .ascii-field {
   pointer-events: auto;
 }
