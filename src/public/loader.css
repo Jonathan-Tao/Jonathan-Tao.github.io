@@ -7,8 +7,8 @@
   justify-content: center;
   flex-direction: column;
   gap: 0.7rem;
-  background: #f4f3ef;
-  color: #1c1711;
+  background: #dcc8a5;
+  color: #2a1d13;
   font-family: "Courier New", monospace;
   opacity: 1;
   visibility: visible;
@@ -32,7 +32,7 @@ body.site-ready:not(.site-leaving) .ascii-loader {
   display: block;
   width: 2rem;
   height: 1.4em;
-  color: #ff5f05;
+  color: #d95c16;
   font-size: 1.15rem;
   line-height: 1.2;
   text-align: center;

@@ -22,7 +22,7 @@ const DUOTONE = (() => {
     [0.35, [96, 44, 52]],
     [0.62, [178, 92, 46]],
     [0.82, [214, 156, 92]],
-    [1, [244, 243, 239]],
+    [1, [220, 200, 165]],
   ];
   return Array.from({ length: 40 }, (_, index) => {
     const value = index / 39;
@@ -153,9 +153,9 @@ export async function initAsciiField(mount) {
     const cellW = width / cols;
     const cellH = height / rows;
     const scanY = scanNorm * rows;
-    const background = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f4f3ef';
-    const foreground = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1c1711';
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff5f05';
+    const background = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#dcc8a5';
+    const foreground = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#2a1d13';
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d95c16';
     const rippleField = activeRippleField((now - start) / 1000);
 
     hitBoxes = embeddedNav
@@ -254,7 +254,7 @@ export async function initAsciiField(mount) {
   window.addEventListener('blur', clearPointer);
   document.documentElement.addEventListener('mouseleave', clearPointer);
 
-  canvas.addEventListener('click', (event) => {
+  window.addEventListener('click', (event) => {
     const rect = canvas.getBoundingClientRect();
     const target = hitTestAsciiNav(
       hitBoxes,
@@ -262,11 +262,13 @@ export async function initAsciiField(mount) {
       event.clientY - rect.top,
     );
     if (target) {
+      event.preventDefault();
+      event.stopPropagation();
       window.dispatchEvent(new CustomEvent('ascii-navigate', {
         detail: { href: target.href },
       }));
     }
-  });
+  }, true);
 
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);

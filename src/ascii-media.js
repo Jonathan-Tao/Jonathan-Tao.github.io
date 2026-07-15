@@ -9,7 +9,7 @@ const DUOTONE = (() => {
     [0.35, [96, 44, 52]],
     [0.62, [178, 92, 46]],
     [0.82, [214, 156, 92]],
-    [1.0, [244, 243, 239]],
+    [1.0, [220, 200, 165]],
   ];
   const N = 40;
   const out = new Array(N);
@@ -75,7 +75,7 @@ function drawContain(ctx, source, w, h) {
   const dy = (h - dh) / 2;
   ctx.clearRect(0, 0, w, h);
   // page-colored matte so transparent SVG logos sample cleanly
-  ctx.fillStyle = '#f4f3ef';
+  ctx.fillStyle = '#dcc8a5';
   ctx.fillRect(0, 0, w, h);
   ctx.drawImage(source, dx, dy, dw, dh);
   return true;

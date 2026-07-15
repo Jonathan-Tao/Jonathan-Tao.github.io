@@ -34,7 +34,7 @@ const DUOTONE = (() => {
     [0.35, [96, 44, 52]], // maroon
     [0.62, [178, 92, 46]], // burnt orange
     [0.82, [214, 156, 92]], // amber
-    [1.0, [244, 243, 239]], // page
+    [1.0, [220, 200, 165]], // page
   ];
   const N = 40;
   const out = new Array(N);
@@ -396,9 +396,9 @@ export async function initAsciiPortrait(mount) {
     const cssH = rect.height;
     const cellW = cssW / cols;
     const cellH = cssH / rows;
-    const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f4f3ef';
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#dcc8a5';
     const fg = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#111';
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff5f05';
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d95c16';
     const scanY = scanNorm * rows;
 
     hitBoxes = regions.map((region) => {
