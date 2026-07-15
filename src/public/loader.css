@@ -1,0 +1,63 @@
+.ascii-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: #f4f3ef;
+  color: #1c1711;
+  font-family: "Courier New", monospace;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+body.site-ready:not(.site-leaving) .ascii-loader {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.ascii-loader-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.ascii-loader-bar {
+  position: relative;
+  display: block;
+  width: 2rem;
+  height: 1.4em;
+  color: #ff5f05;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ascii-loader-bar::before {
+  content: "|";
+  animation: ascii-spin 0.55s steps(1, end) infinite;
+}
+
+.ascii-loader-bar::after {
+  content: none;
+}
+
+@keyframes ascii-spin {
+  0% { content: "|"; }
+  25% { content: "/"; }
+  50% { content: "—"; }
+  75% { content: "\\"; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ascii-loader-bar::before {
+    content: "*";
+    animation: none;
+  }
+}
