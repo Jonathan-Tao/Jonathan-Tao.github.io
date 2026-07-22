@@ -1,4 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+@font-face {
+  font-family: 'Share Tech Mono';
+  src: url('/share-tech-mono.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+.fas,
+.fab {
+  display: inline-block;
+  font-style: normal;
+  font-family: var(--mono);
+  line-height: 1;
+}
+
+.fa-envelope::before { content: '@'; }
+.fa-linkedin::before { content: 'in'; }
+.fa-github::before { content: 'git'; }
+.fa-external-link-alt::before { content: '\2197'; }
 
 :root {
   --bg: #dcc8a5;

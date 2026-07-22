@@ -62,6 +62,7 @@ function bindAsciiNav() {
   const links = [...sidebar.querySelectorAll('.site-nav a')];
 
   function applyMotion(detail) {
+    if (document.body.classList.contains('ascii-nav-embedded')) return;
     const motion = detail || asciiMotion;
     if (motion.reducedMotion) {
       sidebar.querySelectorAll('.nav-glyph').forEach((glyph) => {
@@ -326,7 +327,7 @@ initAsciiMedia();
 
 const coreReady = Promise.allSettled([portraitReady, fieldReady]);
 const readinessTimeout = new Promise((resolve) => {
-  window.setTimeout(resolve, 900);
+  window.setTimeout(resolve, 550);
 });
 
 Promise.race([coreReady, readinessTimeout]).then(() => {

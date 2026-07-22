@@ -5,9 +5,10 @@ const COARSE_RAMP = ' .:-=+*#%@';
 const FINE_RAMP = ' .\'`^",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
 // a clean, tidy ramp for the nav letterforms — no busy punctuation
 const NAV_RAMP = ' .:-=+*oO#%@';
-const PHOTO_SRC = '/currentPhoto.JPG';
+const PHOTO_SRC = '/currentPhoto.webp';
 const FONT = '11px "Share Tech Mono", "Courier New", monospace';
 const CELL = 9;
+const FRAME_INTERVAL = 1000 / 30;
 const REVEAL_RADIUS = 120;
 const REVEAL_FALLOFF = 175;
 const UI_SCALE = 8;
@@ -307,6 +308,10 @@ export async function initAsciiPortrait(mount) {
   let hitBoxes = [];
   let hoveredId = -999;
   let ripples = [];
+  let lastFrame = 0;
+  let bg = '#dcc8a5';
+  let fg = '#111';
+  let accent = '#d95c16';
 
   function layout() {
     const rect = mount.getBoundingClientRect();
@@ -319,6 +324,11 @@ export async function initAsciiPortrait(mount) {
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const styles = getComputedStyle(document.documentElement);
+    bg = styles.getPropertyValue('--bg').trim() || bg;
+    fg = styles.getPropertyValue('--text').trim() || fg;
+    accent = styles.getPropertyValue('--accent').trim() || accent;
 
     ctx.font = FONT;
     charWidth = ctx.measureText('M').width || CELL;
@@ -396,9 +406,6 @@ export async function initAsciiPortrait(mount) {
     const cssH = rect.height;
     const cellW = cssW / cols;
     const cellH = cssH / rows;
-    const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#dcc8a5';
-    const fg = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#111';
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d95c16';
     const scanY = scanNorm * rows;
 
     hitBoxes = regions.map((region) => {
@@ -543,7 +550,10 @@ export async function initAsciiPortrait(mount) {
   }
 
   function frame(now) {
-    draw(now);
+    if (!document.hidden && now - lastFrame >= FRAME_INTERVAL) {
+      lastFrame = now - ((now - lastFrame) % FRAME_INTERVAL);
+      draw(now);
+    }
     raf = requestAnimationFrame(frame);
   }
 

@@ -118,6 +118,7 @@ function mountAsciiMedia(wrapper) {
   let rows = 0;
   let raf = 0;
   let running = false;
+  let lastFrame = 0;
 
   function layout() {
     const rect = wrapper.getBoundingClientRect();
@@ -179,7 +180,10 @@ function mountAsciiMedia(wrapper) {
   function loop(t) {
     raf = 0;
     if (!running) return;
-    renderFrame(t);
+    if (!document.hidden && t - lastFrame >= 50) {
+      lastFrame = t - ((t - lastFrame) % 50);
+      renderFrame(t);
+    }
     if (!reducedMotion) {
       raf = requestAnimationFrame(loop);
     }

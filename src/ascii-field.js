@@ -10,6 +10,7 @@ const COARSE_RAMP = ' .:-=+*#%@';
 const FINE_RAMP = ' .\'`^",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
 const FONT = '11px "Share Tech Mono", "Courier New", monospace';
 const CELL = 9;
+const FRAME_INTERVAL = 1000 / 24;
 const WAVE_SPEED = 150;
 const WAVE_K = 0.09;
 const WAVE_TAU = 1.3;
@@ -74,6 +75,10 @@ export async function initAsciiField(mount) {
   let pointer = { x: -9999, y: -9999, active: false };
   let ripples = [];
   let resizeTimer;
+  let lastFrame = 0;
+  let background = '#dcc8a5';
+  let foreground = '#2a1d13';
+  let accent = '#d95c16';
 
   await document.fonts.load('60px "Share Tech Mono"').catch(() => {});
 
@@ -87,6 +92,11 @@ export async function initAsciiField(mount) {
     canvas.style.height = `${height}px`;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     context.font = FONT;
+
+    const styles = getComputedStyle(document.documentElement);
+    background = styles.getPropertyValue('--bg').trim() || background;
+    foreground = styles.getPropertyValue('--text').trim() || foreground;
+    accent = styles.getPropertyValue('--accent').trim() || accent;
 
     const charWidth = context.measureText('M').width || CELL;
     cols = Math.max(8, Math.floor(width / Math.max(charWidth, CELL * 0.85)));
@@ -153,9 +163,6 @@ export async function initAsciiField(mount) {
     const cellW = width / cols;
     const cellH = height / rows;
     const scanY = scanNorm * rows;
-    const background = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#dcc8a5';
-    const foreground = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#2a1d13';
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d95c16';
     const rippleField = activeRippleField((now - start) / 1000);
 
     hitBoxes = embeddedNav
@@ -222,7 +229,10 @@ export async function initAsciiField(mount) {
   }
 
   function frame(now) {
-    draw(now);
+    if (!document.hidden && now - lastFrame >= FRAME_INTERVAL) {
+      lastFrame = now - ((now - lastFrame) % FRAME_INTERVAL);
+      draw(now);
+    }
     if (!reducedMotion) requestAnimationFrame(frame);
   }
 
