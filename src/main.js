@@ -223,6 +223,7 @@ function setupSectionRail() {
   const rail = document.createElement('nav');
   rail.className = 'section-rail';
   rail.setAttribute('aria-label', `${pageName} sections`);
+  rail.dataset.current = sections[0].dataset.sectionLabel;
 
   const track = document.createElement('div');
   track.className = 'section-rail-track';
@@ -278,7 +279,10 @@ function setupSectionRail() {
       const active = index === activeIndex;
       link.classList.toggle('is-active', active);
       link.querySelector('.section-rail-marker').textContent = active ? '◆' : '◇';
-      if (active) link.setAttribute('aria-current', 'location');
+      if (active) {
+        link.setAttribute('aria-current', 'location');
+        rail.dataset.current = sections[index].dataset.sectionLabel;
+      }
       else link.removeAttribute('aria-current');
     });
   };
