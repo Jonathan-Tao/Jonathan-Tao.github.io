@@ -174,10 +174,11 @@ function setupPageTransitions() {
 }
 
 function setupVideoAutoplay(selector) {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll(selector).forEach((video) => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && !reducedMotion) {
           if (video.paused) {
             video.play().catch(() => {});
           }
@@ -191,10 +192,130 @@ function setupVideoAutoplay(selector) {
   });
 }
 
+function setupYouTubeFacades() {
+  document.querySelectorAll('[data-youtube-id]').forEach((facade) => {
+    const button = facade.querySelector('button');
+    if (!button) return;
+
+    button.addEventListener('click', () => {
+      const videoId = facade.dataset.youtubeId;
+      const title = facade.dataset.youtubeTitle || 'YouTube video';
+      if (!videoId) return;
+
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1`;
+      iframe.title = title;
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+      iframe.allowFullscreen = true;
+      facade.replaceChildren(iframe);
+    }, { once: true });
+  });
+}
+
+function setupSectionRail() {
+  const sections = [...document.querySelectorAll('[data-section-label][id]')];
+  const siteContent = document.querySelector('.site-content');
+  if (sections.length < 2 || !siteContent) return;
+
+  const pageName = document.querySelector('.page')?.dataset.page || 'Page';
+  const rail = document.createElement('nav');
+  rail.className = 'section-rail';
+  rail.setAttribute('aria-label', `${pageName} sections`);
+
+  const track = document.createElement('div');
+  track.className = 'section-rail-track';
+  rail.appendChild(track);
+
+  const links = sections.map((section, index) => {
+    const link = document.createElement('a');
+    link.className = 'section-rail-link';
+    link.href = `#${section.id}`;
+    link.style.setProperty('--section-index', String(index));
+
+    const marker = document.createElement('span');
+    marker.className = 'section-rail-marker';
+    marker.setAttribute('aria-hidden', 'true');
+    marker.textContent = '◇';
+
+    const label = document.createElement('span');
+    label.className = 'section-rail-label';
+    label.textContent = section.dataset.sectionLabel;
+
+    link.append(marker, label);
+    track.appendChild(link);
+    return link;
+  });
+
+  siteContent.prepend(rail);
+
+  let frameRequested = false;
+
+  const updateLayout = () => {
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    sections.forEach((section, index) => {
+      const top = section.getBoundingClientRect().top + window.scrollY;
+      const position = Math.min(1, Math.max(0, top / maxScroll));
+      links[index].style.setProperty('--section-position', position.toFixed(4));
+    });
+  };
+
+  const updateRail = () => {
+    frameRequested = false;
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    const progress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
+    rail.style.setProperty('--scroll-progress', progress.toFixed(4));
+
+    const readingLine = window.scrollY + window.innerHeight * 0.38;
+    let activeIndex = 0;
+    sections.forEach((section, index) => {
+      const top = section.getBoundingClientRect().top + window.scrollY;
+      if (top <= readingLine) activeIndex = index;
+    });
+
+    links.forEach((link, index) => {
+      const active = index === activeIndex;
+      link.classList.toggle('is-active', active);
+      link.querySelector('.section-rail-marker').textContent = active ? '◆' : '◇';
+      if (active) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  };
+
+  const requestUpdate = () => {
+    if (frameRequested) return;
+    frameRequested = true;
+    requestAnimationFrame(updateRail);
+  };
+
+  const relayout = () => {
+    updateLayout();
+    requestUpdate();
+  };
+
+  window.addEventListener('scroll', requestUpdate, { passive: true });
+  window.addEventListener('resize', relayout, { passive: true });
+  window.addEventListener('load', relayout, { once: true });
+  document.fonts.ready.then(relayout).catch(() => {});
+
+  document.querySelectorAll('img, video').forEach((media) => {
+    if (media.complete || media.readyState >= 1) return;
+    media.addEventListener(media.tagName === 'VIDEO' ? 'loadedmetadata' : 'load', relayout, { once: true });
+  });
+
+  if ('ResizeObserver' in window) {
+    const resizeObserver = new ResizeObserver(relayout);
+    resizeObserver.observe(document.querySelector('main'));
+  }
+
+  relayout();
+}
+
 setupSidebarNav();
 setupPageTransitions();
-setupVideoAutoplay('#corexy-video');
-setupVideoAutoplay('#wander-video');
+setupVideoAutoplay('[data-autoplay-video]');
+setupYouTubeFacades();
+setupSectionRail();
 
 const asciiMount = document.getElementById('ascii-portrait');
 const portraitReady = asciiMount ? initAsciiPortrait(asciiMount) : Promise.resolve();

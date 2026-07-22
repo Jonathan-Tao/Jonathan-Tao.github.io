@@ -58,7 +58,84 @@
       <section>
         <h1>Projects</h1>
 
-        <div id="morphi" class="project">
+        <article id="iem-bms" class="project project-article" data-section-label="BMS">
+          <h2>2025–2026 IEM BMS</h2>
+          <p class="project-stack">C, C++, FreeRTOS, STM32H7, Python, CAN, SPI, HIL</p>
+          <p>Led the migration of Illini Electric Motorsports' battery management system from bare-metal STM32F4
+            firmware to FreeRTOS on an STM32H733. The completed system monitors a 144-cell series pack through twelve
+            LTC6811-2 devices connected by DMA-backed isoSPI.</p>
+
+          <figure class="project-figure project-figure-portrait">
+            <img src="/iem-bms-accumulator.webp" alt="IEM accumulator with twelve cell-monitoring boards and wiring"
+              width="1200" height="1600" loading="lazy" decoding="async">
+            <figcaption>The 144-cell accumulator: twelve monitoring boards, each responsible for twelve cells.</figcaption>
+          </figure>
+
+          <p>Split cell polling, isolated pack sensing, state control, precharge protection, battery modeling, and CAN
+            communication into scheduled tasks. The firmware samples pack current and bus voltage and updates
+            SOC, SOH, and power limits at 500 Hz; a separate 1 kHz task monitors precharge and inrush faults.</p>
+
+          <figure class="project-figure project-figure-portrait">
+            <img src="/iem-bms-bench.webp"
+              alt="BMS bench setup with STM32H7 controller, cell monitors, CAN adapter, and power supplies" width="1200"
+              height="1600" loading="lazy" decoding="async">
+            <figcaption>Bench validation of the H7 controller, cell-monitor chain, isolated ADC, and CAN interface.</figcaption>
+          </figure>
+
+          <p>Wrote DMA-based drivers for the LTC6811 chain and isolated ADC, then built Python and C++ validation tools
+            around the firmware. My Python BMS Viewer displays all cell voltages and temperatures, pack state, faults,
+            current, voltage, SOC, SOH, power limits, and CAN health while exposing controlled balancing, charging, and
+            state-estimation commands.</p>
+
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/iem-bms-viewer.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the BMS Viewer image at full size">
+              <img src="/iem-bms-viewer.webp" alt="BMS Viewer showing 144 cell readings, temperatures, faults, and CAN diagnostics"
+                width="1600" height="1200" loading="lazy" decoding="async">
+            </a>
+            <figcaption>The BMS Viewer during pack validation. Open the image for the full diagnostic view.</figcaption>
+          </figure>
+
+          <p>The migrated system completed integration and ran on the car. The acceleration test below exercised the
+            pack, sensing, safety logic, telemetry, and contactor control together.</p>
+
+          <figure class="project-figure project-figure-video">
+            <video class="project-video" controls muted loop playsinline preload="metadata"
+              poster="/iem-bms-accel-poster.webp" data-autoplay-video>
+              <source src="/iem-bms-accel.webm" type="video/webm">
+              <source src="/iem-bms-accel.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>On-car acceleration testing with the completed H7/FreeRTOS BMS.</figcaption>
+          </figure>
+        </article>
+
+        <article id="driverless-perception" class="project project-article" data-section-label="Driverless">
+          <h2>Driverless Perception Pipeline</h2>
+          <p class="project-stack">C++, ROS 2, Ouster OS1, Patchwork++, PointNet, ONNX Runtime</p>
+          <p>Built a LiDAR-only ROS 2 perception pipeline for an Ouster OS1. It deskews each point cloud from vehicle
+            motion, transforms it into the vehicle frame, removes ego and out-of-range returns, and separates the ground
+            with Patchwork++.</p>
+          <p>A parallel, range-adaptive curved-voxel stage groups the remaining points and rejects clusters outside
+            physical cone dimensions. A C++ PointNet runtime then classifies and localizes non-cone, blue, yellow,
+            orange, and large-orange candidates for the rest of the autonomy stack.</p>
+
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/driverless-perception.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the Driverless perception visualization at full size">
+              <img src="/driverless-perception.webp"
+                alt="Foxglove view comparing raw LiDAR, clustered candidates, ground-truth cones, and perception output"
+                width="1600" height="1201" loading="lazy" decoding="async">
+            </a>
+            <figcaption>Recorded-scene replay: raw cloud, size-filtered clusters, labels, and final cone observations.</figcaption>
+          </figure>
+
+          <p>Composable C++ nodes and intra-process transport limit point-cloud copies, while sensor-data QoS prevents
+            stale frames from building a backlog. Deterministic replay measured end-to-end p95 latency below 21 ms and
+            detected cones at 35 meters, within the pipeline's 50 ms latency budget.</p>
+        </article>
+
+        <article id="morphi" class="project project-article" data-section-label="Morphi">
           <h2>Morphi <span class="project-meta">(Top 7 of 226 HackVoyager Finalist, HackIllinois 2026)</span></h2>
           <p class="project-links">
             <a href="https://devpost.com/software/morphi" target="_blank" rel="noopener noreferrer">Devpost <i
@@ -66,51 +143,63 @@
             <a href="https://github.com/SupremeDonut/hackillinois-2026" target="_blank" rel="noopener noreferrer">GitHub
               <i class="fab fa-github"></i></a>
           </p>
-          <p class="project-stack">Python, Modal, vLLM, PyTorch, LoRA, Qwen3-VL</p>
-          <div class="media media-embed">
-            <iframe src="https://www.youtube.com/embed/p8PUMUjyXiI" title="Morphi Pitch Video" frameborder="0" loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-          </div>
-          <p>Architected the backend data pipeline and authored a custom processing script to curate training data,
-            using Gemini 3.0 Flash Thinking to distill over 2,300 labeled examples for fine-tuning a 32B
-            vision-language model via LoRA on 8x H200 GPUs.</p>
-          <p>Engineered serverless backend infrastructure on Modal and optimized multimodal inference with vLLM across
-            a four-GPU cluster, reducing full video processing and inference latency from three minutes to under 24
-            seconds.</p>
-        </div>
+          <p class="project-stack">React Native, Python, Modal, vLLM, YOLO Pose, LoRA, Qwen3-VL</p>
+          <p>Morphi turns a five-second video into coaching for sports, exercise, dance, or music practice. It finds
+            mistakes in the user's motion, pauses playback at each one, draws the current and target joint positions,
+            and narrates a specific correction. A score and session history show whether the next attempt improved.</p>
+          <figure class="project-figure project-figure-video">
+            <div class="youtube-facade" data-youtube-id="p8PUMUjyXiI" data-youtube-title="Morphi pitch video">
+              <button type="button" class="youtube-facade-button" aria-label="Play the Morphi pitch video">
+                <img src="https://i.ytimg.com/vi/p8PUMUjyXiI/hqdefault.jpg" alt="" width="480" height="360"
+                  loading="lazy" decoding="async">
+                <span aria-hidden="true">[ play pitch ]</span>
+              </button>
+            </div>
+            <figcaption>Morphi's HackIllinois pitch and product demonstration.</figcaption>
+          </figure>
+          <p>I built the backend data and training pipeline. Distributed Modal jobs collected sports, yoga, and workout
+            images, kept clear single-person poses with YOLO, and used Gemini 3 Flash to generate schema-validated
+            corrections tied to detected joints. That process produced more than 2,300 labeled examples for LoRA
+            fine-tuning Qwen3-VL-32B on eight H200 GPUs.</p>
+          <p>I served the adapted model with vLLM across four H200s and kept GPU containers warm to avoid repeated model
+            startup. The complete path—from pose extraction through coaching JSON, overlays, and voice generation—fell
+            from about three minutes to less than 24 seconds.</p>
+        </article>
 
-        <div id="corexy" class="project">
+        <article id="corexy" class="project project-article" data-section-label="CoreXY">
           <h2>Custom CoreXY 3D Printer</h2>
           <p class="project-stack">Autodesk Inventor, C++, Klipper, Raspberry Pi</p>
-          <p>Designed and constructed a high-performance CoreXY 3D printer from the ground up, featuring a rigid frame
-            modeled in Autodesk Inventor and custom 3D-printed components.</p>
-          <div class="media ascii-media" data-ascii-media>
-            <video id="corexy-video" class="ascii-media-source" loop muted playsinline preload="metadata">
+          <p>Designed the frame and motion system in Autodesk Inventor, fabricated the custom parts, and assembled the
+            printer around salvaged Ender 3 electronics.</p>
+          <figure class="project-figure project-figure-video project-figure-portrait-video">
+            <video id="corexy-video" class="project-video" controls loop muted playsinline preload="metadata"
+              poster="/corexy-poster.webp" data-autoplay-video>
               <source src="/20240820_211054.webm" type="video/webm">
               <source src="/20240820_211054.mp4" type="video/mp4">
               Your browser does not support the video tag.
             </video>
-          </div>
-          <p>Configured Klipper firmware on a Raspberry Pi 4 to drive salvaged Ender 3 electronics, achieving speeds
-            above 1500 mm/s with 7000 mm/s² acceleration.</p>
-        </div>
+            <figcaption>A speed test of the completed CoreXY motion system.</figcaption>
+          </figure>
+          <p>Configured Klipper on a Raspberry Pi 4 and tuned the motion system beyond 1,500 mm/s at 7,000 mm/s².</p>
+        </article>
 
-        <div id="wander" class="project">
+        <article id="wander" class="project project-article" data-section-label="W.A.N.D.E.R.">
           <h2>W.A.N.D.E.R. Autonomous Robot</h2>
-          <p>Engineered a maze-solving autonomous robot featuring a custom 3D-printed chassis, integrating a gyroscope,
-            wheel encoders, and distance sensors for robust localization.</p>
-          <div class="media ascii-media" data-ascii-media>
-            <video id="wander-video" class="ascii-media-source" loop muted playsinline preload="metadata">
+          <p class="project-stack">C++, ESP32, Autodesk Inventor</p>
+          <p>Designed a 3D-printed maze robot and fused gyroscope, wheel-encoder, and distance-sensor data for
+            localization.</p>
+          <figure class="project-figure project-figure-video project-figure-portrait-video">
+            <video id="wander-video" class="project-video" controls loop muted playsinline preload="metadata"
+              poster="/wander-poster.webp" data-autoplay-video>
               <source src="/robot.webm" type="video/webm">
               <source src="/robot.mp4" type="video/mp4">
               Your browser does not support the video tag.
             </video>
-          </div>
-          <p>The video above shows the robot following a preprogrammed path through boxes. Implemented a C++ pathfinding
-            and SLAM algorithm on an ESP32 microcontroller to efficiently map and navigate unknown maze environments.
-          </p>
-        </div>
+            <figcaption>The robot follows a programmed route between temporary maze walls.</figcaption>
+          </figure>
+          <p>Implemented mapping and pathfinding in C++ on an ESP32 so the robot could build and traverse an unknown
+            maze without an external computer.</p>
+        </article>
       </section>
     </article>
   </main>

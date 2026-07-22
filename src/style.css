@@ -431,6 +431,111 @@ body.page-inner.ascii-nav-embedded .ascii-field {
   pointer-events: auto;
 }
 
+/* Page-local ASCII index for long project and experience pages. */
+.section-rail {
+  --scroll-progress: 0;
+  position: fixed;
+  top: 22rem;
+  bottom: 2.5rem;
+  left: calc(18vw - 0.15rem);
+  z-index: 3;
+  width: 13rem;
+  min-height: 12rem;
+  max-height: 26rem;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 8px rgba(220, 200, 165, 0.92);
+  pointer-events: auto;
+}
+
+.section-rail::before {
+  content: '[ page index ]';
+  display: block;
+  margin-bottom: 0.7rem;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.section-rail-track {
+  position: relative;
+  height: calc(100% - 1.8rem);
+  min-height: 10rem;
+}
+
+.section-rail-track::before,
+.section-rail-track::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0.32rem;
+  width: 1px;
+  background: rgba(116, 95, 69, 0.42);
+}
+
+.section-rail-track::after {
+  bottom: auto;
+  height: calc(var(--scroll-progress) * 100%);
+  background: var(--accent);
+  transition: height 0.08s linear;
+}
+
+.section-rail-link {
+  position: absolute;
+  top: calc(var(--section-position) * 100%);
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 12.5rem;
+  padding: 0.22rem 0.35rem 0.22rem 0;
+  color: var(--text-muted);
+  border: 0;
+  background: transparent;
+  text-decoration: none;
+  transform: translateY(-50%);
+  transition: color 0.16s ease, background 0.16s ease;
+}
+
+.section-rail-marker {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.7rem;
+  flex: 0 0 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.section-rail-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-rail-link:hover,
+.section-rail-link:focus-visible,
+.section-rail-link.is-active {
+  color: var(--text);
+  background: rgba(220, 200, 165, 0.9);
+  outline: none;
+}
+
+.section-rail-link:focus-visible {
+  box-shadow: 0 0 0 1px var(--text);
+}
+
+.section-rail-link.is-active .section-rail-marker {
+  color: var(--accent);
+}
+
 /* The semantic sidebar remains in the DOM, while the shared canvas navigation
    becomes the visible desktop control on every page. */
 @media (min-width: 1101px) {
@@ -908,6 +1013,128 @@ body.page-education strong {
 .ascii-media.media {
   aspect-ratio: 16 / 9;
   border: none;
+}
+
+/* Project articles: media is part of the argument, not a separate gallery. */
+.project-article > p {
+  max-width: 68ch;
+}
+
+.project-figure {
+  width: 100%;
+  margin: 1.35rem 0 1.65rem;
+}
+
+.project-figure img,
+.project-video,
+.youtube-facade iframe {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(116, 95, 69, 0.58);
+  background: rgba(42, 29, 19, 0.08);
+}
+
+.project-figure-link {
+  display: block;
+  border: 0;
+}
+
+.project-figure-link:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.project-figure-portrait,
+.project-figure-portrait-video {
+  max-width: 28rem;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.project-figure-portrait-video {
+  max-width: 21rem;
+}
+
+.project-figure-video:not(.project-figure-portrait-video) .project-video,
+.youtube-facade,
+.youtube-facade iframe {
+  aspect-ratio: 16 / 9;
+}
+
+.project-video {
+  object-fit: contain;
+  background: #1a1412;
+}
+
+.project-figure figcaption {
+  margin-top: 0.55rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+  letter-spacing: 0.025em;
+}
+
+.youtube-facade {
+  position: relative;
+  overflow: hidden;
+  background: #1a1412;
+}
+
+.youtube-facade-button {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(116, 95, 69, 0.58);
+  background: #1a1412;
+  color: #fff;
+  cursor: pointer;
+}
+
+.youtube-facade-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.78;
+  border: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.youtube-facade-button span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid currentColor;
+  background: rgba(26, 20, 18, 0.82);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%);
+}
+
+.youtube-facade-button:hover img,
+.youtube-facade-button:focus-visible img {
+  opacity: 1;
+  transform: scale(1.015);
+}
+
+.youtube-facade-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.inline-project-link {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom-style: dashed;
 }
 
 /* Experience */
@@ -1390,6 +1617,72 @@ body.page-education strong {
     opacity: 0.4;
   }
 
+  .section-rail {
+    position: sticky;
+    top: 0.65rem;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    z-index: 90;
+    width: auto;
+    min-height: 0;
+    max-height: none;
+    height: 3.25rem;
+    margin: 0 1rem 0.75rem;
+    padding: 0.35rem 0.5rem 0.25rem;
+    overflow-x: auto;
+    background: rgba(220, 200, 165, 0.92);
+    border: 1px solid rgba(116, 95, 69, 0.45);
+    text-shadow: none;
+  }
+
+  .section-rail::before {
+    content: none;
+  }
+
+  .section-rail-track {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.3rem;
+    width: 100%;
+    min-width: 28rem;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .section-rail-track::before,
+  .section-rail-track::after {
+    top: auto;
+    right: auto;
+    bottom: 0.2rem;
+    left: 0;
+    width: 100%;
+    height: 1px;
+  }
+
+  .section-rail-track::after {
+    width: calc(var(--scroll-progress) * 100%);
+    background: var(--accent);
+    transition: width 0.08s linear;
+  }
+
+  .section-rail-link {
+    position: relative;
+    top: auto;
+    left: auto;
+    flex: 1 0 auto;
+    justify-content: center;
+    gap: 0.3rem;
+    max-width: none;
+    padding: 0.25rem 0.4rem;
+    transform: none;
+  }
+
+  .section-rail-marker {
+    background: transparent;
+  }
+
   .site-content {
     margin-left: 0;
     padding-left: 0;
@@ -1454,6 +1747,18 @@ body.page-education strong {
   .contact-list a {
     max-width: 100%;
     overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 600px) {
+  .project-figure-portrait,
+  .project-figure-portrait-video {
+    max-width: 100%;
+  }
+
+  .section-rail {
+    margin-right: 0.75rem;
+    margin-left: 0.75rem;
   }
 }
 
