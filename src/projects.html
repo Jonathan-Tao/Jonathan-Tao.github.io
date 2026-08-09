@@ -106,6 +106,18 @@
 
         <article id="driverless-perception" class="project project-article" data-section-label="Driverless">
           <h2>Driverless Perception Pipeline</h2>
+
+          <figure class="project-figure project-figure-video">
+            <video class="project-video" controls muted loop playsinline preload="none"
+              poster="/driverless-transformer-poster.webp" data-autoplay-video>
+              <source src="/hero_frame30.webm" type="video/webm">
+              <source src="/hero_frame30.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>An animated walkthrough of the frame-wide PointNet transformer, from point sampling through
+              candidate attention.</figcaption>
+          </figure>
+
           <p class="project-stack">C++, ROS 2, Ouster OS1, Patchwork++, PointNet Transformer, ONNX Runtime, TensorRT</p>
           <p>Built a LiDAR-only ROS 2 perception pipeline for an Ouster OS1. It deskews each scan from odometry, IMU, and
             twist data, transforms the cloud into the vehicle frame, removes ego and out-of-range returns, and uses
@@ -125,6 +137,10 @@
             through ONNX Runtime with TensorRT, CUDA, and CPU providers, then republishes each source cluster with its
             decoded probabilities and original timestamp.</p>
 
+          <p>Composable C++ nodes and intra-process transport limit point-cloud copies. Post-processing merges close
+            clusters, confirms candidates across distinct odometry-associated views, applies mission- and range-aware
+            color policy, and publishes centroid positions with calibrated uncertainty.</p>
+
           <figure class="project-figure project-figure-video project-figure-16-10-video">
             <video class="project-video" controls muted loop playsinline preload="none"
               poster="/driverless-perception-demo-poster.webp" data-autoplay-video>
@@ -135,20 +151,6 @@
             <figcaption>Recorded-scene replay: raw cloud, size-filtered clusters, labels, and final cone observations.</figcaption>
           </figure>
 
-          <figure class="project-figure project-figure-video">
-            <video class="project-video" controls muted loop playsinline preload="none"
-              poster="/driverless-transformer-poster.webp" data-autoplay-video>
-              <source src="/hero_frame30.webm" type="video/webm">
-              <source src="/hero_frame30.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-            <figcaption>An animated walkthrough of the frame-wide PointNet transformer, from point sampling through
-              candidate attention.</figcaption>
-          </figure>
-
-          <p>Composable C++ nodes and intra-process transport limit point-cloud copies. Post-processing merges close
-            clusters, confirms candidates across distinct odometry-associated views, applies mission- and range-aware
-            color policy, and publishes centroid positions with calibrated uncertainty.</p>
           <p>On a 630-frame real-scene replay, the complete detector reached 98.97% precision, 81.57% recall, 98.91%
             color accuracy, and 8.7 cm localization RMSE. Every measured callback had p95 latency below 1.9 ms.</p>
         </article>
