@@ -1247,57 +1247,6 @@ body.page-education strong {
   background: transparent;
 }
 
-/* Skills */
-
-.skill-block {
-  position: relative;
-  margin-bottom: 1.35rem;
-  padding: 1rem 1.1rem 1.05rem;
-  border: 1px dashed var(--border);
-  background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(220, 200, 165, 0.62) 0,
-      rgba(220, 200, 165, 0.62) 8px,
-      rgba(214, 156, 92, 0.05) 8px,
-      rgba(214, 156, 92, 0.05) 9px
-    );
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.skill-block:last-child {
-  margin-bottom: 0;
-  padding-bottom: 1.05rem;
-  border-bottom: 1px dashed var(--border);
-}
-
-.skill-block:hover,
-.skill-block:focus-within {
-  border-color: var(--text);
-  background: rgba(220, 200, 165, 0.86);
-}
-
-.skill-label {
-  display: block;
-  font-size: 1.05rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text);
-  margin-bottom: 0.5rem;
-}
-
-.skill-label::before {
-  content: '// ';
-  opacity: 0.7;
-}
-
-.skill-values {
-  margin: 0;
-  color: var(--text);
-  letter-spacing: 0.02em;
-}
-
 /* Social */
 
 .social-links {
@@ -1412,7 +1361,6 @@ body.page-education strong {
 .education-header,
 .project,
 .experience-card,
-.skill-block,
 .contact-list {
   border: 0;
   background: transparent;
@@ -1428,16 +1376,6 @@ body.page-education strong {
   padding: 2.25rem 0 2rem;
 }
 
-.skill-block {
-  margin-bottom: 2rem;
-  padding: 0;
-}
-
-.skill-block:last-child {
-  padding-bottom: 0;
-  border: 0;
-}
-
 .contact-list {
   padding: 2rem 0 0;
 }
@@ -1447,9 +1385,7 @@ body.page-education strong {
 .project:hover,
 .project:focus-within,
 .experience-card:hover,
-.experience-card:focus-within,
-.skill-block:hover,
-.skill-block:focus-within {
+.experience-card:focus-within {
   border-color: transparent;
   background: transparent;
   transform: none;
@@ -1471,8 +1407,7 @@ body.page-education strong {
 
 .education-header::after,
 .project::after,
-.experience-card::after,
-.skill-block::after {
+.experience-card::after {
   content: '·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·';
   position: static;
   display: block;
@@ -1503,8 +1438,7 @@ body.page-education strong {
 }
 
 .project h2,
-.experience-text h3,
-.skill-label {
+.experience-text h3 {
   transition: color 0.18s ease, transform 0.18s ease;
 }
 
@@ -1512,12 +1446,6 @@ body.page-education strong {
 .project:focus-within h2,
 .experience-card:hover .experience-text h3,
 .experience-card:focus-within .experience-text h3 {
-  color: var(--text);
-  transform: none;
-}
-
-.skill-block:hover .skill-label,
-.skill-block:focus-within .skill-label {
   color: var(--text);
   transform: none;
 }
@@ -1535,8 +1463,6 @@ body.page-education strong {
 .experience-card::after,
 .experience-text h3::before,
 .role::before,
-.skill-block::after,
-.skill-label::before,
 .contact-list::before {
   content: none;
 }
@@ -1544,7 +1470,6 @@ body.page-education strong {
 .education-header,
 .project,
 .experience-card,
-.skill-block,
 .contact-list {
   font-family: var(--mono);
 }

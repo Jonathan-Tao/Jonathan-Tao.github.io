@@ -12,7 +12,6 @@ export default defineConfig({
         education: resolve(__dirname, 'education.html'),
         projects: resolve(__dirname, 'projects.html'),
         experience: resolve(__dirname, 'experience.html'),
-        skills: resolve(__dirname, 'skills.html'),
         contact: resolve(__dirname, 'contact.html'),
       },
     },
