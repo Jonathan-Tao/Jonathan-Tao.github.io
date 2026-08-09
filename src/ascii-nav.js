@@ -40,8 +40,6 @@ function dilate(source, cols, rows, radius = 1) {
 
 export function buildAsciiNav(cols, rows) {
   const letter = new Float32Array(cols * rows);
-  const idMap = new Int16Array(cols * rows);
-  idMap.fill(-1);
 
   const hiCols = cols * ASCII_NAV_HI;
   const hiRows = rows * ASCII_NAV_HI;
@@ -110,7 +108,6 @@ export function buildAsciiNav(cols, rows) {
         found = true;
         const index = y * cols + x;
         letter[index] = Math.max(letter[index], alpha);
-        idMap[index] = id;
         minX = Math.min(minX, x);
         minY = Math.min(minY, y);
         maxX = Math.max(maxX, x);
@@ -134,7 +131,6 @@ export function buildAsciiNav(cols, rows) {
   return {
     letter,
     halo: dilate(letter, cols, rows, 1),
-    idMap,
     regions,
     letterHi,
     hiCols,

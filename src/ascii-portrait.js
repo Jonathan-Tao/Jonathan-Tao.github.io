@@ -1,4 +1,4 @@
-import { asciiMotion, updateAsciiMotion } from './ascii-motion.js';
+import { updateAsciiMotion } from './ascii-motion.js';
 import { buildAsciiNav, drawAsciiNav } from './ascii-nav.js';
 
 const COARSE_RAMP = ' .:-=+*#%@';
@@ -279,7 +279,7 @@ export async function initAsciiPortrait(mount) {
   );
   mount.appendChild(canvas);
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { desynchronized: true });
   let img;
   try {
     img = await loadImage(PHOTO_SRC);
@@ -300,7 +300,6 @@ export async function initAsciiPortrait(mount) {
   let start = performance.now();
   let letter = null;
   let halo = null;
-  let idMap = null;
   let regions = [];
   let letterHi = null;
   let hiCols = 0;
@@ -309,6 +308,17 @@ export async function initAsciiPortrait(mount) {
   let hoveredId = -999;
   let ripples = [];
   let lastFrame = 0;
+  let cssW = 1;
+  let cssH = 1;
+  let canvasDpr = 0;
+  let cellW = 1;
+  let cellH = 1;
+  let centerX = null;
+  let centerY = null;
+  let waveSin = null;
+  let waveCos = null;
+  let cursor = 'crosshair';
+  const rippleSample = { b: 0, ox: 0, oy: 0 };
   let bg = '#dcc8a5';
   let fg = '#111';
   let accent = '#d95c16';
@@ -316,8 +326,12 @@ export async function initAsciiPortrait(mount) {
   function layout() {
     const rect = mount.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const cssW = Math.max(1, Math.floor(rect.width));
-    const cssH = Math.max(1, Math.floor(rect.height));
+    const nextCssW = Math.max(1, Math.floor(rect.width));
+    const nextCssH = Math.max(1, Math.floor(rect.height));
+    if (nextCssW === cssW && nextCssH === cssH && dpr === canvasDpr && coarse) return;
+    cssW = nextCssW;
+    cssH = nextCssH;
+    canvasDpr = dpr;
 
     canvas.width = Math.floor(cssW * dpr);
     canvas.height = Math.floor(cssH * dpr);
@@ -332,10 +346,25 @@ export async function initAsciiPortrait(mount) {
 
     ctx.font = FONT;
     charWidth = ctx.measureText('M').width || CELL;
-    const cellW = Math.max(charWidth, CELL * 0.85);
-    const cellH = CELL;
-    cols = Math.max(8, Math.floor(cssW / cellW));
-    rows = Math.max(8, Math.floor(cssH / cellH));
+    const baseCellW = Math.max(charWidth, CELL * 0.85);
+    cols = Math.max(8, Math.floor(cssW / baseCellW));
+    rows = Math.max(8, Math.floor(cssH / CELL));
+    cellW = cssW / cols;
+    cellH = cssH / rows;
+    centerX = new Float64Array(cols);
+    centerY = new Float64Array(rows);
+    waveSin = new Float64Array(cols * rows);
+    waveCos = new Float64Array(cols * rows);
+    for (let x = 0; x < cols; x += 1) centerX[x] = (x + 0.5) * cellW;
+    for (let y = 0; y < rows; y += 1) {
+      centerY[y] = (y + 0.5) * cellH;
+      for (let x = 0; x < cols; x += 1) {
+        const index = y * cols + x;
+        const phase = x * 0.22 + y * 0.17;
+        waveSin[index] = Math.sin(phase);
+        waveCos[index] = Math.cos(phase);
+      }
+    }
 
     coarse = sampleGrid(img, cols, rows);
     fine = sampleGrid(img, cols * 2, rows * 2);
@@ -343,7 +372,6 @@ export async function initAsciiPortrait(mount) {
     const ui = buildAsciiNav(cols, rows);
     letter = ui.letter;
     halo = ui.halo;
-    idMap = ui.idMap;
     regions = ui.regions;
     letterHi = ui.letterHi;
     hiCols = ui.hiCols;
@@ -365,26 +393,29 @@ export async function initAsciiPortrait(mount) {
     const motion = updateAsciiMotion(now, start, reducedMotion);
     const { t, breath, scanNorm, driftX, driftY } = motion;
 
-    // Advance / prune the wake wavelets and precompute each one's current
-    // radius and amplitude for this frame.
+    // Advance and prune the wake wavelets without creating per-frame copies.
     const nowSec = (now - start) / 1000;
-    let activeRipples = [];
-    if (!reducedMotion && ripples.length) {
-      ripples = ripples.filter((r) => nowSec - r.t0 < WAVE_TAU * 3.2);
-      activeRipples = ripples.map((r) => {
-        const age = nowSec - r.t0;
-        return { x: r.x, y: r.y, radius: age * WAVE_SPEED, amp: Math.exp(-age / WAVE_TAU) };
-      });
+    let write = 0;
+    if (!reducedMotion) {
+      for (let index = 0; index < ripples.length; index += 1) {
+        const ripple = ripples[index];
+        const age = nowSec - ripple.t0;
+        if (age >= WAVE_TAU * 3.2) continue;
+        ripple.radius = age * WAVE_SPEED;
+        ripple.amp = Math.exp(-age / WAVE_TAU);
+        ripples[write] = ripple;
+        write += 1;
+      }
     }
+    ripples.length = write;
     const rippleCut = WAVE_BAND * 2.5;
-    // Sum the wavelet contributions at a point: brightness disturbance + a
-    // radial push vector, so the field both shimmers and sloshes like water.
+    // Sum the wavelet contributions at a point into one reused result.
     const rippleField = (px, py) => {
       let b = 0;
       let ox = 0;
       let oy = 0;
-      for (let i = 0; i < activeRipples.length; i += 1) {
-        const r = activeRipples[i];
+      for (let i = 0; i < ripples.length; i += 1) {
+        const r = ripples[i];
         const dx = px - r.x;
         const dy = py - r.y;
         const d = Math.hypot(dx, dy);
@@ -398,15 +429,16 @@ export async function initAsciiPortrait(mount) {
           oy += (dy / d) * s;
         }
       }
-      return { b, ox, oy };
+      rippleSample.b = b;
+      rippleSample.ox = ox;
+      rippleSample.oy = oy;
+      return rippleSample;
     };
 
-    const rect = mount.getBoundingClientRect();
-    const cssW = rect.width;
-    const cssH = rect.height;
-    const cellW = cssW / cols;
-    const cellH = cssH / rows;
     const scanY = scanNorm * rows;
+    const waveTime = t * 1.6;
+    const waveTimeSin = Math.sin(waveTime);
+    const waveTimeCos = Math.cos(waveTime);
 
     hitBoxes = regions.map((region) => {
       const midX = (region.minX + region.maxX) / 2;
@@ -428,18 +460,13 @@ export async function initAsciiPortrait(mount) {
 
     const hit = pointer.active ? hitTest(pointer.x, pointer.y) : null;
     hoveredId = hit ? hit.id : -999;
-    canvas.style.cursor = hit ? 'pointer' : 'crosshair';
-
-    // per-frame overrides for hover solidify (still ASCII cells, not DOM boxes)
-    const boxOn = new Uint8Array(cols * rows);
-    const hoveredRegion = regions.find((r) => r.id === hoveredId) || null;
-    if (hoveredRegion) {
-      for (let y = hoveredRegion.minY; y <= hoveredRegion.maxY; y += 1) {
-        for (let x = hoveredRegion.minX; x <= hoveredRegion.maxX; x += 1) {
-          boxOn[y * cols + x] = 1;
-        }
-      }
+    const nextCursor = hit ? 'pointer' : 'crosshair';
+    if (nextCursor !== cursor) {
+      cursor = nextCursor;
+      canvas.style.cursor = cursor;
     }
+
+    const hoveredRegion = regions.find((r) => r.id === hoveredId) || null;
 
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, cssW, cssH);
@@ -457,29 +484,31 @@ export async function initAsciiPortrait(mount) {
     ctx.font = FONT;
     ctx.textBaseline = 'top';
     ctx.fillStyle = fg;
+    let lastFillStyle = fg;
+    let lastAlpha = -1;
 
     for (let y = 0; y < rows; y += 1) {
       for (let x = 0; x < cols; x += 1) {
         const idx = y * cols + x;
         const L = letter[idx];
         const H = halo[idx];
-        const uid = idMap[idx];
-        const inHoverBox = boxOn[idx] === 1;
-        const isCurrent = regions.some((r) => r.id === uid && r.current);
+        const inHoverBox = hoveredRegion
+          && x >= hoveredRegion.minX && x <= hoveredRegion.maxX
+          && y >= hoveredRegion.minY && y <= hoveredRegion.maxY;
 
-        const wave = Math.sin(x * 0.22 + y * 0.17 + t * 1.6) * 0.03;
+        const wave = (waveSin[idx] * waveTimeCos + waveCos[idx] * waveTimeSin) * 0.03;
         const band = Math.max(0, 1 - Math.abs(y - scanY) / 5);
         // no random per-cell flicker — it read as noise
         const flicker = 0;
 
-        const cx = (x + 0.5) * cellW;
-        const cy = (y + 0.5) * cellH;
-        const dist = Math.hypot(cx - pointer.x, cy - pointer.y);
+        const cx = centerX[x];
+        const cy = centerY[y];
         const influence = pointer.active && !reducedMotion && !hit
-          ? Math.max(0, 1 - (dist - REVEAL_RADIUS) / (REVEAL_FALLOFF - REVEAL_RADIUS))
+          ? Math.max(0, 1 - (Math.hypot(cx - pointer.x, cy - pointer.y) - REVEAL_RADIUS)
+            / (REVEAL_FALLOFF - REVEAL_RADIUS))
           : 0;
-        // wake disturbance from passing wavelets at this cell
-        const rf = rippleField(cx, cy);
+        // Wake calculations are unnecessary until a ripple exists.
+        const rf = ripples.length ? rippleField(cx, cy) : null;
 
         let b = applyContrast(coarse[idx]) + breath + wave + band * 0.08 + flicker;
         let useFine = influence > 0.35;
@@ -497,8 +526,8 @@ export async function initAsciiPortrait(mount) {
           // clean carved cushion — a blank light plate; the actual letters are
           // painted on top at fine resolution in the nav pass below. The wake
           // still washes through it so the cursor stirs the blank areas too.
-          b = Math.max(b, 0.95) + rf.b * 0.08;
-        } else {
+          b = Math.max(b, 0.95) + (rf ? rf.b * 0.08 : 0);
+        } else if (rf) {
           b += rf.b * 0.22;
         }
 
@@ -506,9 +535,9 @@ export async function initAsciiPortrait(mount) {
 
         // the wake also sloshes cells radially, like water displacement
         const ox = driftX * (0.15 + band * 0.35) * (influence > 0.2 ? 0.2 : 1)
-          + rf.ox * cellW * 0.85;
+          + (rf ? rf.ox * cellW * 0.85 : 0);
         const oy = driftY * (0.1 + band * 0.25)
-          + rf.oy * cellH * 0.85;
+          + (rf ? rf.oy * cellH * 0.85 : 0);
 
         let ch;
         if (useFine || L > 0.15) {
@@ -518,13 +547,22 @@ export async function initAsciiPortrait(mount) {
             b = Math.min(1, Math.max(0, fine[fy * cols * 2 + fx] + breath * 0.5 + wave));
           }
           ch = charFromRamp(FINE_RAMP, b);
-          ctx.globalAlpha = L > 0.15 ? 0.95 : 0.65 + influence * 0.35;
         } else {
           ch = charFromRamp(COARSE_RAMP, b);
-          ctx.globalAlpha = 0.7 + band * 0.25 + influence * 0.2;
         }
 
-        ctx.fillStyle = duotoneColor(b);
+        const alpha = useFine || L > 0.15
+          ? (L > 0.15 ? 0.95 : 0.65 + influence * 0.35)
+          : 0.7 + band * 0.25 + influence * 0.2;
+        const fillStyle = duotoneColor(b);
+        if (fillStyle !== lastFillStyle) {
+          lastFillStyle = fillStyle;
+          ctx.fillStyle = fillStyle;
+        }
+        if (alpha !== lastAlpha) {
+          lastAlpha = alpha;
+          ctx.globalAlpha = alpha;
+        }
         ctx.fillText(ch, x * cellW + ox, y * cellH + oy);
       }
     }
@@ -545,21 +583,29 @@ export async function initAsciiPortrait(mount) {
       rippleField,
     });
     ctx.font = FONT;
+  }
 
-    window.dispatchEvent(new CustomEvent('ascii-frame', { detail: { ...asciiMotion } }));
+  function requestFrame() {
+    if (!reducedMotion && !document.hidden && !raf) raf = requestAnimationFrame(frame);
   }
 
   function frame(now) {
-    if (!document.hidden && now - lastFrame >= FRAME_INTERVAL) {
+    raf = 0;
+    if (document.hidden) return;
+    if (now - lastFrame >= FRAME_INTERVAL) {
       lastFrame = now - ((now - lastFrame) % FRAME_INTERVAL);
       draw(now);
     }
-    raf = requestAnimationFrame(frame);
+    requestFrame();
   }
 
   layout();
   if (reducedMotion) draw(performance.now());
-  else raf = requestAnimationFrame(frame);
+  else requestFrame();
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) requestFrame();
+  });
 
   new ResizeObserver(() => layout()).observe(mount);
 

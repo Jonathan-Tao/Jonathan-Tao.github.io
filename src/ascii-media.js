@@ -116,15 +116,28 @@ function mountAsciiMedia(wrapper) {
 
   let cols = 0;
   let rows = 0;
+  let cssW = 1;
+  let cssH = 1;
+  let cellW = 1;
+  let cellH = 1;
+  let canvasDpr = 0;
+  let grid = null;
+  let foreground = '#111';
   let raf = 0;
   let running = false;
+  let intersecting = false;
   let lastFrame = 0;
 
-  function layout() {
+  function layout(force = false) {
     const rect = wrapper.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const cssW = Math.max(1, Math.floor(rect.width));
-    const cssH = Math.max(1, Math.floor(rect.height));
+    const nextCssW = Math.max(1, Math.floor(rect.width));
+    const nextCssH = Math.max(1, Math.floor(rect.height));
+    if (!force && nextCssW === cssW && nextCssH === cssH && dpr === canvasDpr && grid) return false;
+
+    cssW = nextCssW;
+    cssH = nextCssH;
+    canvasDpr = dpr;
     canvas.width = Math.floor(cssW * dpr);
     canvas.height = Math.floor(cssH * dpr);
     canvas.style.width = `${cssW}px`;
@@ -132,28 +145,27 @@ function mountAsciiMedia(wrapper) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     cols = Math.max(8, Math.floor(cssW / cell));
     rows = Math.max(8, Math.floor(cssH / cell));
+    cellW = cssW / cols;
+    cellH = cssH / rows;
+    foreground = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || foreground;
+    grid = sampleFromSource(source, cols, rows);
+    return true;
   }
 
-  function paint(grid, t = 0) {
-    const rect = wrapper.getBoundingClientRect();
-    const cssW = rect.width;
-    const cssH = rect.height;
-    const cellW = cssW / cols;
-    const cellH = cssH / rows;
-    const fg = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#111';
+  function paint(gridValues, t = 0) {
     const fontSize = Math.max(7, Math.floor(Math.min(cellW, cellH) * 0.95));
 
     ctx.clearRect(0, 0, cssW, cssH);
     ctx.font = `${fontSize}px ${FONT_FAMILY}`;
     ctx.textBaseline = 'top';
-    ctx.fillStyle = fg;
+    ctx.fillStyle = foreground;
 
     const scan = (Math.sin(t * 0.0015) * 0.5 + 0.5) * rows;
     const motion = reducedMotion ? 0 : 1;
 
     for (let y = 0; y < rows; y += 1) {
       for (let x = 0; x < cols; x += 1) {
-        let b = grid[y * cols + x];
+        let b = gridValues[y * cols + x];
         const band = motion * (1 - Math.min(1, Math.abs(y - scan) / 6));
         b = Math.min(1, Math.max(0, b + band * 0.04));
 
@@ -171,9 +183,7 @@ function mountAsciiMedia(wrapper) {
   }
 
   function renderFrame(t = 0) {
-    if (!cols || !rows) return;
-    const grid = sampleFromSource(source, cols, rows);
-    if (!grid) return;
+    if (!cols || !rows || !grid) return;
     paint(grid, t);
   }
 
@@ -190,7 +200,7 @@ function mountAsciiMedia(wrapper) {
   }
 
   function start() {
-    if (running) return;
+    if (running || document.hidden) return;
     running = true;
     if (!raf) raf = requestAnimationFrame(loop);
   }
@@ -204,11 +214,12 @@ function mountAsciiMedia(wrapper) {
   }
 
   function ready() {
-    layout();
+    layout(true);
     renderFrame(0);
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
+        intersecting = entry.isIntersecting;
+        if (intersecting) {
           if (isVideo) source.play().catch(() => {});
           if (!reducedMotion) start();
           else renderFrame(0);
@@ -231,10 +242,14 @@ function mountAsciiMedia(wrapper) {
   }
 
   const resizeObserver = new ResizeObserver(() => {
-    layout();
-    renderFrame(performance.now());
+    if (layout()) renderFrame(performance.now());
   });
   resizeObserver.observe(wrapper);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stop();
+    else if (intersecting && !reducedMotion) start();
+  });
 
   wrapper.classList.add('ascii-media-ready');
 }

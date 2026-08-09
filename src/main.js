@@ -176,21 +176,21 @@ function setupPageTransitions() {
 
 function setupVideoAutoplay(selector) {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.querySelectorAll(selector).forEach((video) => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && !reducedMotion) {
-          if (video.paused) {
-            video.play().catch(() => {});
-          }
-        } else {
-          video.pause();
-        }
-      });
-    }, { threshold: 0.25 });
+  const videos = [...document.querySelectorAll(selector)];
+  if (!videos.length) return;
 
-    observer.observe(video);
-  });
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const video = entry.target;
+      if (entry.isIntersecting && !reducedMotion) {
+        if (video.paused) video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
+  }, { threshold: 0.25 });
+
+  videos.forEach((video) => observer.observe(video));
 }
 
 function setupYouTubeFacades() {
@@ -252,11 +252,13 @@ function setupSectionRail() {
   siteContent.prepend(rail);
 
   let frameRequested = false;
+  const sectionTops = new Float64Array(sections.length);
 
   const updateLayout = () => {
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
     sections.forEach((section, index) => {
       const top = section.getBoundingClientRect().top + window.scrollY;
+      sectionTops[index] = top;
       const position = Math.min(1, Math.max(0, top / maxScroll));
       links[index].style.setProperty('--section-position', position.toFixed(4));
     });
@@ -270,8 +272,7 @@ function setupSectionRail() {
 
     const readingLine = window.scrollY + window.innerHeight * 0.38;
     let activeIndex = 0;
-    sections.forEach((section, index) => {
-      const top = section.getBoundingClientRect().top + window.scrollY;
+    sectionTops.forEach((top, index) => {
       if (top <= readingLine) activeIndex = index;
     });
 

@@ -63,7 +63,7 @@ export async function initAsciiField(mount) {
   canvas.setAttribute('aria-label', 'Interactive duotone ASCII background with site navigation');
   mount.appendChild(canvas);
 
-  const context = canvas.getContext('2d');
+  const context = canvas.getContext('2d', { desynchronized: true });
   const start = performance.now();
   let cols = 0;
   let rows = 0;
@@ -76,6 +76,17 @@ export async function initAsciiField(mount) {
   let ripples = [];
   let resizeTimer;
   let lastFrame = 0;
+  let raf = 0;
+  let cssWidth = 1;
+  let cssHeight = 1;
+  let cellW = 1;
+  let cellH = 1;
+  let centerX = null;
+  let centerY = null;
+  let waveSin = null;
+  let waveCos = null;
+  let cursor = 'crosshair';
+  const rippleSample = { b: 0, ox: 0, oy: 0 };
   let background = '#dcc8a5';
   let foreground = '#2a1d13';
   let accent = '#d95c16';
@@ -86,6 +97,8 @@ export async function initAsciiField(mount) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
+    cssWidth = width;
+    cssHeight = height;
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
     canvas.style.width = `${width}px`;
@@ -101,16 +114,28 @@ export async function initAsciiField(mount) {
     const charWidth = context.measureText('M').width || CELL;
     cols = Math.max(8, Math.floor(width / Math.max(charWidth, CELL * 0.85)));
     rows = Math.max(8, Math.floor(height / CELL));
+    cellW = width / cols;
+    cellH = height / rows;
+    centerX = new Float64Array(cols);
+    centerY = new Float64Array(rows);
     field = new Float32Array(cols * rows);
+    waveSin = new Float64Array(cols * rows);
+    waveCos = new Float64Array(cols * rows);
 
+    for (let x = 0; x < cols; x += 1) centerX[x] = (x + 0.5) * cellW;
     for (let y = 0; y < rows; y += 1) {
+      centerY[y] = (y + 0.5) * cellH;
       for (let x = 0; x < cols; x += 1) {
+        const index = y * cols + x;
         const nx = x / cols;
         const ny = y / rows;
         const diagonal = Math.sin(nx * 9 + ny * 5) * 0.08;
         const columns = Math.cos(nx * 18 - ny * 3) * 0.055;
         const vignette = Math.hypot(nx - 0.56, ny - 0.46) * 0.22;
-        field[y * cols + x] = Math.min(0.96, Math.max(0.46, 0.72 + diagonal + columns + vignette));
+        const phase = x * 0.22 + y * 0.17;
+        field[index] = Math.min(0.96, Math.max(0.46, 0.72 + diagonal + columns + vignette));
+        waveSin[index] = Math.sin(phase);
+        waveCos[index] = Math.cos(phase);
       }
     }
 
@@ -122,75 +147,89 @@ export async function initAsciiField(mount) {
     );
   }
 
-  function activeRippleField(nowSeconds) {
-    ripples = ripples.filter((ripple) => nowSeconds - ripple.t0 < WAVE_TAU * 3.2);
-    const active = ripples.map((ripple) => {
+  function updateRipples(nowSeconds) {
+    let write = 0;
+    for (let index = 0; index < ripples.length; index += 1) {
+      const ripple = ripples[index];
       const age = nowSeconds - ripple.t0;
-      return {
-        ...ripple,
-        radius: age * WAVE_SPEED,
-        amplitude: Math.exp(-age / WAVE_TAU),
-      };
-    });
-    return (x, y) => {
-      let brightness = 0;
-      let offsetX = 0;
-      let offsetY = 0;
-      active.forEach((ripple) => {
-        const dx = x - ripple.x;
-        const dy = y - ripple.y;
-        const distance = Math.hypot(dx, dy);
-        const difference = distance - ripple.radius;
-        if (Math.abs(difference) > WAVE_BAND * 2.5) return;
-        const envelope = Math.exp(-(difference ** 2) / (2 * WAVE_BAND ** 2)) * ripple.amplitude;
-        const strength = Math.sin(difference * WAVE_K) * envelope;
-        brightness += strength;
-        if (distance > 0.001) {
-          offsetX += (dx / distance) * strength;
-          offsetY += (dy / distance) * strength;
-        }
-      });
-      return { b: brightness, ox: offsetX, oy: offsetY };
-    };
+      if (age >= WAVE_TAU * 3.2) continue;
+      ripple.radius = age * WAVE_SPEED;
+      ripple.amplitude = Math.exp(-age / WAVE_TAU);
+      ripples[write] = ripple;
+      write += 1;
+    }
+    ripples.length = write;
+  }
+
+  function sampleRipple(x, y) {
+    let brightness = 0;
+    let offsetX = 0;
+    let offsetY = 0;
+    for (let index = 0; index < ripples.length; index += 1) {
+      const ripple = ripples[index];
+      const dx = x - ripple.x;
+      const dy = y - ripple.y;
+      const distance = Math.hypot(dx, dy);
+      const difference = distance - ripple.radius;
+      if (Math.abs(difference) > WAVE_BAND * 2.5) continue;
+      const envelope = Math.exp(-(difference ** 2) / (2 * WAVE_BAND ** 2)) * ripple.amplitude;
+      const strength = Math.sin(difference * WAVE_K) * envelope;
+      brightness += strength;
+      if (distance > 0.001) {
+        offsetX += (dx / distance) * strength;
+        offsetY += (dy / distance) * strength;
+      }
+    }
+    rippleSample.b = brightness;
+    rippleSample.ox = offsetX;
+    rippleSample.oy = offsetY;
+    return rippleSample;
   }
 
   function draw(now) {
     if (!field || !nav) return;
     const motion = updateAsciiMotion(now, start, reducedMotion);
     const { t, breath, scanNorm, driftX, driftY } = motion;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const cellW = width / cols;
-    const cellH = height / rows;
+    const width = cssWidth;
+    const height = cssHeight;
     const scanY = scanNorm * rows;
-    const rippleField = activeRippleField((now - start) / 1000);
+    const waveTime = t * 1.6;
+    const waveTimeSin = Math.sin(waveTime);
+    const waveTimeCos = Math.cos(waveTime);
+    updateRipples((now - start) / 1000);
 
     hitBoxes = embeddedNav
       ? buildNavHitBoxes(nav.regions, cellW, cellH, motion, reducedMotion)
       : [];
     const hit = pointer.active ? hitTestAsciiNav(hitBoxes, pointer.x, pointer.y) : null;
     hoveredId = hit ? hit.id : -999;
-    canvas.style.cursor = hit ? 'pointer' : 'crosshair';
+    const nextCursor = hit ? 'pointer' : 'crosshair';
+    if (nextCursor !== cursor) {
+      cursor = nextCursor;
+      canvas.style.cursor = cursor;
+    }
 
     context.fillStyle = background;
     context.fillRect(0, 0, width, height);
     context.font = FONT;
     context.textBaseline = 'top';
+    let lastFillStyle = '';
+    let lastAlpha = -1;
 
     const hoveredRegion = nav.regions.find((region) => region.id === hoveredId);
     for (let y = 0; y < rows; y += 1) {
       for (let x = 0; x < cols; x += 1) {
         const index = y * cols + x;
-        const wave = Math.sin(x * 0.22 + y * 0.17 + t * 1.6) * 0.03;
+        const wave = (waveSin[index] * waveTimeCos + waveCos[index] * waveTimeSin) * 0.03;
         const band = Math.max(0, 1 - Math.abs(y - scanY) / 6);
-        const centerX = (x + 0.5) * cellW;
-        const centerY = (y + 0.5) * cellH;
-        const ripple = rippleField(centerX, centerY);
+        const px = centerX[x];
+        const py = centerY[y];
+        const ripple = ripples.length ? sampleRipple(px, py) : null;
         const inHover = hoveredRegion
           && x >= hoveredRegion.minX && x <= hoveredRegion.maxX
           && y >= hoveredRegion.minY && y <= hoveredRegion.maxY;
 
-        let brightness = field[index] + breath + wave + band * 0.07 + ripple.b * 0.2;
+        let brightness = field[index] + breath + wave + band * 0.07 + (ripple ? ripple.b * 0.2 : 0);
         if (inHover) {
           const edge = x === hoveredRegion.minX || x === hoveredRegion.maxX
             || y === hoveredRegion.minY || y === hoveredRegion.maxY;
@@ -200,13 +239,21 @@ export async function initAsciiField(mount) {
         }
         brightness = Math.min(1, Math.max(0, brightness));
 
-        const distance = Math.hypot(centerX - pointer.x, centerY - pointer.y);
-        const nearPointer = pointer.active && !hit && distance < 170;
+        const nearPointer = pointer.active && !hit
+          && Math.hypot(px - pointer.x, py - pointer.y) < 170;
         const glyph = charFromRamp(nearPointer ? FINE_RAMP : COARSE_RAMP, brightness);
-        const offsetX = driftX * (0.15 + band * 0.35) + ripple.ox * cellW * 0.8;
-        const offsetY = driftY * (0.1 + band * 0.25) + ripple.oy * cellH * 0.8;
-        context.fillStyle = duotoneColor(brightness);
-        context.globalAlpha = nearPointer ? 0.88 : 0.58 + band * 0.2;
+        const offsetX = driftX * (0.15 + band * 0.35) + (ripple ? ripple.ox * cellW * 0.8 : 0);
+        const offsetY = driftY * (0.1 + band * 0.25) + (ripple ? ripple.oy * cellH * 0.8 : 0);
+        const fillStyle = duotoneColor(brightness);
+        const alpha = nearPointer ? 0.88 : 0.58 + band * 0.2;
+        if (fillStyle !== lastFillStyle) {
+          lastFillStyle = fillStyle;
+          context.fillStyle = fillStyle;
+        }
+        if (alpha !== lastAlpha) {
+          lastAlpha = alpha;
+          context.globalAlpha = alpha;
+        }
         context.fillText(glyph, x * cellW + offsetX, y * cellH + offsetY);
       }
     }
@@ -220,20 +267,28 @@ export async function initAsciiField(mount) {
         hoveredId,
         foreground,
         accent,
-        rippleField,
+        rippleField: sampleRipple,
       });
     }
 
     context.globalAlpha = 1;
-    window.dispatchEvent(new CustomEvent('ascii-frame', { detail: motion }));
+    if (!document.body.classList.contains('ascii-nav-embedded')) {
+      window.dispatchEvent(new CustomEvent('ascii-frame', { detail: motion }));
+    }
+  }
+
+  function requestFrame() {
+    if (!reducedMotion && !document.hidden && !raf) raf = requestAnimationFrame(frame);
   }
 
   function frame(now) {
-    if (!document.hidden && now - lastFrame >= FRAME_INTERVAL) {
+    raf = 0;
+    if (document.hidden) return;
+    if (now - lastFrame >= FRAME_INTERVAL) {
       lastFrame = now - ((now - lastFrame) % FRAME_INTERVAL);
       draw(now);
     }
-    if (!reducedMotion) requestAnimationFrame(frame);
+    requestFrame();
   }
 
   function updatePointer(event) {
@@ -288,8 +343,12 @@ export async function initAsciiField(mount) {
     }, 120);
   });
 
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) requestFrame();
+  });
+
   layout();
   if (reducedMotion) draw(performance.now());
-  else requestAnimationFrame(frame);
+  else requestFrame();
   mount.classList.add('ascii-field-ready');
 }
