@@ -8,7 +8,7 @@
   <link rel="preload" href="/share-tech-mono.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/loader.css" />
   <title>Projects — Jonathan Tao</title>
-  <script type="module" crossorigin src="/assets/main.0497d972.js"></script>
+  <script type="module" crossorigin src="/assets/main.373dfa55.js"></script>
   <link rel="stylesheet" href="/assets/main.43440d5f.css">
 </head>
 
@@ -59,10 +59,8 @@
           <figure class="project-figure project-figure-video">
             <video class="project-video" controls muted loop playsinline preload="none"
               poster="/driverless-transformer-poster.webp" data-autoplay-video>
-              <source src="/hero_frame30-mobile.webm" type="video/webm" media="(max-width: 480px)">
-              <source src="/hero_frame30-mobile.mp4" type="video/mp4" media="(max-width: 480px)">
-              <source src="/hero_frame30.webm" type="video/webm">
-              <source src="/hero_frame30.mp4" type="video/mp4">
+              <source src="/hero_frame30.webm" data-mobile-src="/hero_frame30-mobile.webm" type="video/webm">
+              <source src="/hero_frame30.mp4" data-mobile-src="/hero_frame30-mobile.mp4" type="video/mp4">
               Your browser does not support the video tag.
             </video>
             <figcaption>An animated walkthrough of the frame-wide PointNet transformer, from point sampling through

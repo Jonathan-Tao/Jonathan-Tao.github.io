@@ -179,6 +179,20 @@ function setupVideoAutoplay(selector) {
   const videos = [...document.querySelectorAll(selector)];
   if (!videos.length) return;
 
+  // Select the mobile encode once. A responsive <source media> query can
+  // change when fullscreen changes the viewport, which reloads the video and
+  // closes native fullscreen mode.
+  if (window.matchMedia('(max-width: 480px)').matches) {
+    videos.forEach((video) => {
+      let sourceChanged = false;
+      video.querySelectorAll('source[data-mobile-src]').forEach((source) => {
+        source.src = source.dataset.mobileSrc;
+        sourceChanged = true;
+      });
+      if (sourceChanged) video.load();
+    });
+  }
+
   const visibility = new Map(videos.map((video) => [video, false]));
   const isFullscreen = (video) => {
     const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
