@@ -54,69 +54,6 @@
       <section>
         <h1>Projects</h1>
 
-        <article id="iem-bms" class="project project-article" data-section-label="BMS">
-          <h2>2025–2026 IEM BMS</h2>
-          <p class="project-stack">C, C++, FreeRTOS, STM32H7, Python, CAN, SPI, HIL</p>
-          <p>Led the migration of Illini Electric Motorsports' battery management system from bare-metal STM32F4
-            firmware to FreeRTOS on an STM32H733. The completed system monitors a 144-cell series pack through twelve
-            LTC6811-2 devices connected by DMA-backed isoSPI.</p>
-
-          <figure class="project-figure project-figure-portrait">
-            <img src="/iem-bms-accumulator.webp" alt="IEM accumulator with twelve cell-monitoring boards and wiring"
-              width="1200" height="1600" loading="lazy" decoding="async">
-            <figcaption>The 144-cell accumulator: twelve monitoring boards, each responsible for twelve cells.</figcaption>
-          </figure>
-
-          <p>Split cell polling, isolated pack sensing, state control, precharge protection, battery modeling, and CAN
-            communication into scheduled tasks. The firmware samples pack current and bus voltage and updates
-            SOC, SOH, and power limits at 500 Hz; a separate 1 kHz task monitors precharge and inrush faults.</p>
-
-          <figure class="project-figure project-figure-wide">
-            <a class="project-figure-link" href="/iem-bms-architecture.webp" target="_blank" rel="noopener noreferrer"
-              aria-label="Open the BMS firmware architecture diagram at full size">
-              <img src="/iem-bms-architecture.webp"
-                alt="Flowchart of STM32H7 FreeRTOS tasks, peripheral interfaces, accumulator sensors, and car signals"
-                width="1465" height="1093" loading="lazy" decoding="async">
-            </a>
-            <figcaption>Firmware architecture from accumulator and car inputs through STM32 peripherals, FreeRTOS tasks,
-              IPC, and CAN outputs. Open the diagram for the full-size view.</figcaption>
-          </figure>
-
-          <figure class="project-figure project-figure-portrait">
-            <img src="/iem-bms-bench.webp"
-              alt="BMS bench setup with STM32H7 controller, cell monitors, CAN adapter, and power supplies" width="1200"
-              height="1600" loading="lazy" decoding="async">
-            <figcaption>Bench validation of the H7 controller, cell-monitor chain, isolated ADC, and CAN interface.</figcaption>
-          </figure>
-
-          <p>Wrote DMA-based drivers for the LTC6811 chain and isolated ADC, then built Python and C++ validation tools
-            around the firmware. My Python BMS Viewer displays all cell voltages and temperatures, pack state, faults,
-            current, voltage, SOC, SOH, power limits, and CAN health while exposing controlled balancing, charging, and
-            state-estimation commands.</p>
-
-          <figure class="project-figure project-figure-wide">
-            <a class="project-figure-link" href="/iem-bms-viewer.webp" target="_blank" rel="noopener noreferrer"
-              aria-label="Open the BMS Viewer image at full size">
-              <img src="/iem-bms-viewer.webp" alt="BMS Viewer showing 144 cell readings, temperatures, faults, and CAN diagnostics"
-                width="1600" height="1200" loading="lazy" decoding="async">
-            </a>
-            <figcaption>The BMS Viewer during pack validation. Open the image for the full diagnostic view.</figcaption>
-          </figure>
-
-          <p>The migrated system completed integration and ran on the car. The acceleration test below exercised the
-            pack, sensing, safety logic, telemetry, and contactor control together.</p>
-
-          <figure class="project-figure project-figure-video">
-            <video class="project-video" controls muted loop playsinline preload="none"
-              poster="/iem-bms-accel-poster.webp" data-autoplay-video>
-              <source src="/iem-bms-accel.webm" type="video/webm">
-              <source src="/iem-bms-accel.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-            <figcaption>On-car acceleration testing with the completed H7/FreeRTOS BMS.</figcaption>
-          </figure>
-        </article>
-
         <article id="driverless-perception" class="project project-article" data-section-label="Driverless">
           <h2>Driverless Perception Pipeline</h2>
 
@@ -200,6 +137,69 @@
 
           <p>On a 630-frame real-scene replay, the complete detector reached 98.97% precision, 81.57% recall, 98.91%
             color accuracy, and 8.7 cm localization RMSE. Every measured callback had p95 latency below 1.9 ms.</p>
+        </article>
+
+        <article id="iem-bms" class="project project-article" data-section-label="BMS">
+          <h2>2025–2026 IEM BMS</h2>
+          <p class="project-stack">C, C++, FreeRTOS, STM32H7, Python, CAN, SPI, HIL</p>
+          <p>Led the migration of Illini Electric Motorsports' battery management system from bare-metal STM32F4
+            firmware to FreeRTOS on an STM32H733. The completed system monitors a 144-cell series pack through twelve
+            LTC6811-2 devices connected by DMA-backed isoSPI.</p>
+
+          <figure class="project-figure project-figure-portrait">
+            <img src="/iem-bms-accumulator.webp" alt="IEM accumulator with twelve cell-monitoring boards and wiring"
+              width="1200" height="1600" loading="lazy" decoding="async">
+            <figcaption>The 144-cell accumulator: twelve monitoring boards, each responsible for twelve cells.</figcaption>
+          </figure>
+
+          <p>Split cell polling, isolated pack sensing, state control, precharge protection, battery modeling, and CAN
+            communication into scheduled tasks. The firmware samples pack current and bus voltage and updates
+            SOC, SOH, and power limits at 500 Hz; a separate 1 kHz task monitors precharge and inrush faults.</p>
+
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/iem-bms-architecture.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the BMS firmware architecture diagram at full size">
+              <img src="/iem-bms-architecture.webp"
+                alt="Flowchart of STM32H7 FreeRTOS tasks, peripheral interfaces, accumulator sensors, and car signals"
+                width="1465" height="1093" loading="lazy" decoding="async">
+            </a>
+            <figcaption>Firmware architecture from accumulator and car inputs through STM32 peripherals, FreeRTOS tasks,
+              IPC, and CAN outputs. Open the diagram for the full-size view.</figcaption>
+          </figure>
+
+          <figure class="project-figure project-figure-portrait">
+            <img src="/iem-bms-bench.webp"
+              alt="BMS bench setup with STM32H7 controller, cell monitors, CAN adapter, and power supplies" width="1200"
+              height="1600" loading="lazy" decoding="async">
+            <figcaption>Bench validation of the H7 controller, cell-monitor chain, isolated ADC, and CAN interface.</figcaption>
+          </figure>
+
+          <p>Wrote DMA-based drivers for the LTC6811 chain and isolated ADC, then built Python and C++ validation tools
+            around the firmware. My Python BMS Viewer displays all cell voltages and temperatures, pack state, faults,
+            current, voltage, SOC, SOH, power limits, and CAN health while exposing controlled balancing, charging, and
+            state-estimation commands.</p>
+
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/iem-bms-viewer.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the BMS Viewer image at full size">
+              <img src="/iem-bms-viewer.webp" alt="BMS Viewer showing 144 cell readings, temperatures, faults, and CAN diagnostics"
+                width="1600" height="1200" loading="lazy" decoding="async">
+            </a>
+            <figcaption>The BMS Viewer during pack validation. Open the image for the full diagnostic view.</figcaption>
+          </figure>
+
+          <p>The migrated system completed integration and ran on the car. The acceleration test below exercised the
+            pack, sensing, safety logic, telemetry, and contactor control together.</p>
+
+          <figure class="project-figure project-figure-video">
+            <video class="project-video" controls muted loop playsinline preload="none"
+              poster="/iem-bms-accel-poster.webp" data-autoplay-video>
+              <source src="/iem-bms-accel.webm" type="video/webm">
+              <source src="/iem-bms-accel.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>On-car acceleration testing with the completed H7/FreeRTOS BMS.</figcaption>
+          </figure>
         </article>
 
         <article id="morphi" class="project project-article" data-section-label="Morphi">
