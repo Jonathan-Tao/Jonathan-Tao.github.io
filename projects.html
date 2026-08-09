@@ -71,6 +71,17 @@
             communication into scheduled tasks. The firmware samples pack current and bus voltage and updates
             SOC, SOH, and power limits at 500 Hz; a separate 1 kHz task monitors precharge and inrush faults.</p>
 
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/iem-bms-architecture.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the BMS firmware architecture diagram at full size">
+              <img src="/iem-bms-architecture.webp"
+                alt="Flowchart of STM32H7 FreeRTOS tasks, peripheral interfaces, accumulator sensors, and car signals"
+                width="1465" height="1093" loading="lazy" decoding="async">
+            </a>
+            <figcaption>Firmware architecture from accumulator and car inputs through STM32 peripherals, FreeRTOS tasks,
+              IPC, and CAN outputs. Open the diagram for the full-size view.</figcaption>
+          </figure>
+
           <figure class="project-figure project-figure-portrait">
             <img src="/iem-bms-bench.webp"
               alt="BMS bench setup with STM32H7 controller, cell monitors, CAN adapter, and power supplies" width="1200"
