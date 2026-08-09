@@ -179,18 +179,43 @@ function setupVideoAutoplay(selector) {
   const videos = [...document.querySelectorAll(selector)];
   if (!videos.length) return;
 
+  const visibility = new Map(videos.map((video) => [video, false]));
+  const isFullscreen = (video) => {
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    return video.webkitDisplayingFullscreen
+      || fullscreenElement === video
+      || Boolean(fullscreenElement?.contains(video))
+      || Boolean(fullscreenElement && video.contains(fullscreenElement));
+  };
+  const updatePlayback = (video) => {
+    // Native controls can move the video outside its document layout while it
+    // is fullscreen. Do not treat that temporary state as leaving the viewport.
+    if (isFullscreen(video)) return;
+    if (visibility.get(video) && !reducedMotion) {
+      if (video.paused) video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  };
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       const video = entry.target;
-      if (entry.isIntersecting && !reducedMotion) {
-        if (video.paused) video.play().catch(() => {});
-      } else {
-        video.pause();
-      }
+      visibility.set(video, entry.isIntersecting);
+      updatePlayback(video);
     });
   }, { threshold: 0.25 });
 
-  videos.forEach((video) => observer.observe(video));
+  const updateAllPlayback = () => videos.forEach(updatePlayback);
+  document.addEventListener('fullscreenchange', updateAllPlayback);
+  document.addEventListener('webkitfullscreenchange', updateAllPlayback);
+
+  videos.forEach((video) => {
+    observer.observe(video);
+    video.addEventListener('webkitendfullscreen', () => {
+      window.setTimeout(() => updatePlayback(video), 0);
+    });
+  });
 }
 
 function setupYouTubeFacades() {
