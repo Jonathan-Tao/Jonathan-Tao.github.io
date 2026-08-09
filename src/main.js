@@ -298,6 +298,9 @@ function setupSectionRail() {
 
   let frameRequested = false;
   const sectionTops = new Float64Array(sections.length);
+  const documentIsFullscreen = () => Boolean(
+    document.fullscreenElement || document.webkitFullscreenElement,
+  );
 
   const updateLayout = () => {
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
@@ -311,6 +314,7 @@ function setupSectionRail() {
 
   const updateRail = () => {
     frameRequested = false;
+    if (documentIsFullscreen()) return;
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
     const progress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
     rail.style.setProperty('--scroll-progress', progress.toFixed(4));
@@ -334,12 +338,13 @@ function setupSectionRail() {
   };
 
   const requestUpdate = () => {
-    if (frameRequested) return;
+    if (frameRequested || documentIsFullscreen()) return;
     frameRequested = true;
     requestAnimationFrame(updateRail);
   };
 
   const relayout = () => {
+    if (documentIsFullscreen()) return;
     updateLayout();
     requestUpdate();
   };
@@ -347,6 +352,8 @@ function setupSectionRail() {
   window.addEventListener('scroll', requestUpdate, { passive: true });
   window.addEventListener('resize', relayout, { passive: true });
   window.addEventListener('load', relayout, { once: true });
+  document.addEventListener('fullscreenchange', relayout);
+  document.addEventListener('webkitfullscreenchange', relayout);
   document.fonts.ready.then(relayout).catch(() => {});
 
   document.querySelectorAll('img, video').forEach((media) => {

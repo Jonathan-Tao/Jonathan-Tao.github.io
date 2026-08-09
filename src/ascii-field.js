@@ -344,6 +344,9 @@ export async function initAsciiField(mount) {
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
+      // Entering native video fullscreen resizes the viewport. Rebuilding the
+      // page canvas during that transition can disrupt Chrome's fullscreen UI.
+      if (documentIsFullscreen()) return;
       layout();
       if (reducedMotion) draw(performance.now());
     }, 120);
@@ -352,8 +355,12 @@ export async function initAsciiField(mount) {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) requestFrame();
   });
-  document.addEventListener('fullscreenchange', requestFrame);
-  document.addEventListener('webkitfullscreenchange', requestFrame);
+  const handleFullscreenChange = () => {
+    if (!documentIsFullscreen()) layout();
+    requestFrame();
+  };
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
   layout();
   if (reducedMotion) draw(performance.now());
