@@ -140,15 +140,49 @@
             candidate box. A shared 4→64→64 PointNet MLP produces point features, then masked maximum, mean, and standard
             deviation pooling creates a 192-value shape descriptor. The graph appends intensity summaries, six physical
             box features, and five position features before projecting each candidate to a 128-value token.</p>
+
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/driverless-cloud-encoder.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the PointNet candidate encoder flowchart at full size">
+              <img src="/driverless-cloud-encoder.webp"
+                alt="Flowchart from masked XYZI point rows through PointNet pooling and candidate token projection"
+                width="2034" height="528" loading="lazy" decoding="async">
+            </a>
+            <figcaption>PointNet turns each masked XYZI cluster into one 128-value candidate token.</figcaption>
+          </figure>
+
           <p>All candidate tokens from one scan enter 12 post-LayerNorm transformer blocks in one frame-wide inference
             call. Each block uses eight-head dense self-attention and a 128→512→128 feed-forward network. A learned
             per-head bias encodes the planar distance and bearing between every candidate pair, while a mission token
             supplies acceleration, skidpad, or track context without hard-coded rules.</p>
+
+          <figure class="project-figure project-figure-portrait">
+            <a class="project-figure-link" href="/driverless-transformer-block.webp" target="_blank"
+              rel="noopener noreferrer" aria-label="Open the transformer block flowchart at full size">
+              <img src="/driverless-transformer-block.webp"
+                alt="Flowchart of geometry-biased self-attention, residual connections, normalization, and token MLP"
+                width="741" height="1395" loading="lazy" decoding="async">
+            </a>
+            <figcaption>One post-LayerNorm transformer block: geometry-biased attention, residual updates, and a
+              per-token MLP.</figcaption>
+          </figure>
+
           <p>A five-class output head produces non-cone, blue, yellow, orange, and big-orange scores. A separate claim
             head estimates whether the winning color is reliable, so the runtime can move uncertain color probability
             to unknown without reducing cone objectness. The composable ROS 2 node executes the dynamic-candidate graph
             through ONNX Runtime with TensorRT, CUDA, and CPU providers, then republishes each source cluster with its
             decoded probabilities and original timestamp.</p>
+
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/driverless-token-output.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the PointNet output-head flowchart at full size">
+              <img src="/driverless-token-output.webp"
+                alt="Flowchart from a final candidate token to cone objectness, conditional colors, and color claim"
+                width="888" height="769" loading="lazy" decoding="async">
+            </a>
+            <figcaption>The final token feeds a joint class head for objectness and conditional color, plus a separate
+              color-claim head.</figcaption>
+          </figure>
 
           <p>Composable C++ nodes and intra-process transport limit point-cloud copies. Post-processing merges close
             clusters, confirms candidates across distinct odometry-associated views, applies mission- and range-aware
