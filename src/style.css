@@ -928,6 +928,9 @@ body.page-education strong {
 .project,
 .experience-card {
   scroll-margin-top: 1.5rem;
+}
+
+.experience-card {
   content-visibility: auto;
   contain-intrinsic-size: auto 28rem;
 }
@@ -1088,6 +1091,15 @@ body.page-education strong {
 .project-video {
   object-fit: contain;
   background: #1a1412;
+}
+
+.project-figure-video .project-video:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: auto;
+  border: 0;
+  object-fit: contain;
+  background: #000;
 }
 
 .project-figure figcaption {
