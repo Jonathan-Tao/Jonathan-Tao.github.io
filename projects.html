@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/loader.css" />
   <title>Projects — Jonathan Tao</title>
   <script type="module" crossorigin src="/assets/main.d6bd6438.js"></script>
-  <link rel="stylesheet" href="/assets/main.61ed3feb.css">
+  <link rel="stylesheet" href="/assets/main.86bea9b0.css">
 </head>
 
 <body class="has-sidebar page-inner page-projects">
@@ -108,27 +108,51 @@
 
         <article id="driverless-perception" class="project project-article" data-section-label="Driverless">
           <h2>Driverless Perception Pipeline</h2>
-          <p class="project-stack">C++, ROS 2, Ouster OS1, Patchwork++, PointNet, ONNX Runtime</p>
-          <p>Built a LiDAR-only ROS 2 perception pipeline for an Ouster OS1. It deskews each point cloud from vehicle
-            motion, transforms it into the vehicle frame, removes ego and out-of-range returns, and separates the ground
-            with Patchwork++.</p>
-          <p>A parallel, range-adaptive curved-voxel stage groups the remaining points and rejects clusters outside
-            physical cone dimensions. A C++ PointNet runtime then classifies and localizes non-cone, blue, yellow,
-            orange, and large-orange candidates for the rest of the autonomy stack.</p>
+          <p class="project-stack">C++, ROS 2, Ouster OS1, Patchwork++, PointNet Transformer, ONNX Runtime, TensorRT</p>
+          <p>Built a LiDAR-only ROS 2 perception pipeline for an Ouster OS1. It deskews each scan from odometry, IMU, and
+            twist data, transforms the cloud into the vehicle frame, removes ego and out-of-range returns, and uses
+            Patchwork++ to separate ground from obstacles.</p>
+          <p>Range-adaptive curved-voxel clustering groups obstacle returns into size-gated cone candidates. For each
+            candidate, the C++ runtime samples up to 64 XYZI returns and canonicalizes their coordinates within the
+            candidate box. A shared 4→64→64 PointNet MLP produces point features, then masked maximum, mean, and standard
+            deviation pooling creates a 192-value shape descriptor. The graph appends intensity summaries, six physical
+            box features, and five position features before projecting each candidate to a 128-value token.</p>
+          <p>All candidate tokens from one scan enter 12 post-LayerNorm transformer blocks in one frame-wide inference
+            call. Each block uses eight-head dense self-attention and a 128→512→128 feed-forward network. A learned
+            per-head bias encodes the planar distance and bearing between every candidate pair, while a mission token
+            supplies acceleration, skidpad, or track context without hard-coded rules.</p>
+          <p>A five-class output head produces non-cone, blue, yellow, orange, and big-orange scores. A separate claim
+            head estimates whether the winning color is reliable, so the runtime can move uncertain color probability
+            to unknown without reducing cone objectness. The composable ROS 2 node executes the dynamic-candidate graph
+            through ONNX Runtime with TensorRT, CUDA, and CPU providers, then republishes each source cluster with its
+            decoded probabilities and original timestamp.</p>
 
-          <figure class="project-figure project-figure-wide">
-            <a class="project-figure-link" href="/driverless-perception.webp" target="_blank" rel="noopener noreferrer"
-              aria-label="Open the Driverless perception visualization at full size">
-              <img src="/driverless-perception.webp"
-                alt="Foxglove view comparing raw LiDAR, clustered candidates, ground-truth cones, and perception output"
-                width="1600" height="1201" loading="lazy" decoding="async">
-            </a>
+          <figure class="project-figure project-figure-video project-figure-16-10-video">
+            <video class="project-video" controls muted loop playsinline preload="none"
+              poster="/driverless-perception-demo-poster.webp" data-autoplay-video>
+              <source src="/driverless-perception-demo.webm" type="video/webm">
+              <source src="/driverless-perception-demo.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
             <figcaption>Recorded-scene replay: raw cloud, size-filtered clusters, labels, and final cone observations.</figcaption>
           </figure>
 
-          <p>Composable C++ nodes and intra-process transport limit point-cloud copies, while sensor-data QoS prevents
-            stale frames from building a backlog. Deterministic replay measured end-to-end p95 latency below 21 ms and
-            detected cones at 35 meters, within the pipeline's 50 ms latency budget.</p>
+          <figure class="project-figure project-figure-video">
+            <video class="project-video" controls muted loop playsinline preload="none"
+              poster="/driverless-transformer-poster.webp" data-autoplay-video>
+              <source src="/hero_frame30.webm" type="video/webm">
+              <source src="/hero_frame30.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>An animated walkthrough of the frame-wide PointNet transformer, from point sampling through
+              candidate attention.</figcaption>
+          </figure>
+
+          <p>Composable C++ nodes and intra-process transport limit point-cloud copies. Post-processing merges close
+            clusters, confirms candidates across distinct odometry-associated views, applies mission- and range-aware
+            color policy, and publishes centroid positions with calibrated uncertainty.</p>
+          <p>On a 630-frame real-scene replay, the complete detector reached 98.97% precision, 81.57% recall, 98.91%
+            color accuracy, and 8.7 cm localization RMSE. Every measured callback had p95 latency below 1.9 ms.</p>
         </article>
 
         <article id="morphi" class="project project-article" data-section-label="Morphi">

@@ -1081,6 +1081,10 @@ body.page-education strong {
   aspect-ratio: 16 / 9;
 }
 
+.project-figure-video.project-figure-16-10-video .project-video {
+  aspect-ratio: 16 / 10;
+}
+
 .project-video {
   object-fit: contain;
   background: #1a1412;
