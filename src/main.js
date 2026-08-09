@@ -201,33 +201,39 @@ function setupVideoAutoplay(selector) {
       || Boolean(fullscreenElement?.contains(video))
       || Boolean(fullscreenElement && video.contains(fullscreenElement));
   };
-  const updatePlayback = (video) => {
-    // Native controls can move the video outside its document layout while it
-    // is fullscreen. Do not treat that temporary state as leaving the viewport.
-    if (isFullscreen(video)) return;
-    if (visibility.get(video) && !reducedMotion) {
-      if (video.paused) video.play().catch(() => {});
-    } else {
-      video.pause();
+  let activeVideo = null;
+
+  const startPlayback = (video) => {
+    if (activeVideo && activeVideo !== video && !isFullscreen(activeVideo)) {
+      activeVideo.pause();
     }
+    activeVideo = video;
+    if (!reducedMotion && video.paused) video.play().catch(() => {});
   };
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       const video = entry.target;
       visibility.set(video, entry.isIntersecting);
-      updatePlayback(video);
+      if (entry.isIntersecting) startPlayback(video);
+      // Do not pause on an exit event. Chrome can report one while it moves a
+      // native video into fullscreen, before the Fullscreen API state updates.
     });
   }, { threshold: 0.25 });
 
-  const updateAllPlayback = () => videos.forEach(updatePlayback);
-  document.addEventListener('fullscreenchange', updateAllPlayback);
-  document.addEventListener('webkitfullscreenchange', updateAllPlayback);
+  const finishFullscreen = () => {
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fullscreenElement && activeVideo && !visibility.get(activeVideo)) {
+      activeVideo.pause();
+    }
+  };
+  document.addEventListener('fullscreenchange', finishFullscreen);
+  document.addEventListener('webkitfullscreenchange', finishFullscreen);
 
   videos.forEach((video) => {
     observer.observe(video);
     video.addEventListener('webkitendfullscreen', () => {
-      window.setTimeout(() => updatePlayback(video), 0);
+      window.setTimeout(finishFullscreen, 0);
     });
   });
 }

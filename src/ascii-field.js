@@ -277,13 +277,19 @@ export async function initAsciiField(mount) {
     }
   }
 
+  function documentIsFullscreen() {
+    return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
   function requestFrame() {
-    if (!reducedMotion && !document.hidden && !raf) raf = requestAnimationFrame(frame);
+    if (!reducedMotion && !document.hidden && !documentIsFullscreen() && !raf) {
+      raf = requestAnimationFrame(frame);
+    }
   }
 
   function frame(now) {
     raf = 0;
-    if (document.hidden) return;
+    if (document.hidden || documentIsFullscreen()) return;
     if (now - lastFrame >= FRAME_INTERVAL) {
       lastFrame = now - ((now - lastFrame) % FRAME_INTERVAL);
       draw(now);
@@ -346,6 +352,8 @@ export async function initAsciiField(mount) {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) requestFrame();
   });
+  document.addEventListener('fullscreenchange', requestFrame);
+  document.addEventListener('webkitfullscreenchange', requestFrame);
 
   layout();
   if (reducedMotion) draw(performance.now());
