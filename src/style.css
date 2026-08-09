@@ -1027,14 +1027,43 @@ strong {
   max-width: 21rem;
 }
 
-.project-figure-video:not(.project-figure-portrait-video) .project-video,
+.project-video-frame {
+  width: 100%;
+}
+
+.project-figure-video:not(.project-figure-portrait-video) .project-video-frame,
 .youtube-facade,
 .youtube-facade iframe {
   aspect-ratio: 16 / 9;
 }
 
-.project-figure-video.project-figure-16-10-video .project-video {
+.project-figure-video.project-figure-16-10-video .project-video-frame {
   aspect-ratio: 16 / 10;
+}
+
+.project-figure-portrait-video .project-video-frame {
+  aspect-ratio: 9 / 16;
+}
+
+/* Keep cached pre-wrapper HTML stable during fullscreen transitions. */
+.project-figure-video:not(:has(.project-video-frame)):has(.project-video:fullscreen)::before {
+  content: '';
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.project-figure-16-10-video:not(:has(.project-video-frame)):has(.project-video:fullscreen)::before {
+  aspect-ratio: 16 / 10;
+}
+
+.project-figure-portrait-video:not(:has(.project-video-frame)):has(.project-video:fullscreen)::before {
+  aspect-ratio: 9 / 16;
+}
+
+.project-video-frame > .project-video {
+  height: 100%;
+  aspect-ratio: auto;
 }
 
 .project-video {
@@ -1043,9 +1072,6 @@ strong {
 }
 
 .project-figure-video .project-video:fullscreen {
-  width: 100vw;
-  height: 100vh;
-  aspect-ratio: auto;
   border: 0;
   object-fit: contain;
   background: #000;

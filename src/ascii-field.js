@@ -297,6 +297,13 @@ export async function initAsciiField(mount) {
     requestFrame();
   }
 
+  function eventTargetsControl(event) {
+    return event.composedPath().some((target) => (
+      target instanceof Element
+      && target.matches('video, button, a, input, select, textarea, [role="button"]')
+    ));
+  }
+
   function updatePointer(event) {
     const rect = canvas.getBoundingClientRect();
     pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top, active: true };
@@ -308,6 +315,7 @@ export async function initAsciiField(mount) {
   }
 
   function spawnRipple(event) {
+    if (eventTargetsControl(event)) return;
     updatePointer(event);
     if (reducedMotion) return;
     ripples.push({
@@ -326,6 +334,7 @@ export async function initAsciiField(mount) {
   document.documentElement.addEventListener('mouseleave', clearPointer);
 
   window.addEventListener('click', (event) => {
+    if (eventTargetsControl(event)) return;
     const rect = canvas.getBoundingClientRect();
     const target = hitTestAsciiNav(
       hitBoxes,
