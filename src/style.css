@@ -1071,10 +1071,18 @@ strong {
   background: #1a1412;
 }
 
-.project-figure-video .project-video:fullscreen {
-  border: 0;
-  object-fit: contain;
-  background: #000;
+.project-figure-video .project-video:fullscreen,
+.project-figure-video .project-video:-webkit-full-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  border: 0 !important;
+  object-fit: contain !important;
+  background: #000 !important;
 }
 
 .project-figure figcaption {

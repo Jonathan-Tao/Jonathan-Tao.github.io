@@ -3,6 +3,11 @@ import { initAsciiPortrait } from './ascii-portrait.js';
 import { initAsciiField } from './ascii-field.js';
 import { initAsciiMedia } from './ascii-media.js';
 import { asciiMotion } from './ascii-motion.js';
+import {
+  documentIsFullscreen,
+  installFullscreenGuard,
+  shouldFreezeFullscreenLayout,
+} from './fullscreen-guard.js';
 
 function setupSidebarNav() {
   const toggle = document.querySelector('.sidebar-toggle');
@@ -196,16 +201,30 @@ function setupVideoAutoplay(selector) {
   const visibility = new Map(videos.map((video) => [video, false]));
   const isFullscreen = (video) => {
     const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
-    return video.webkitDisplayingFullscreen
-      || fullscreenElement === video
-      || Boolean(fullscreenElement?.contains(video))
-      || Boolean(fullscreenElement && video.contains(fullscreenElement));
+    if (video.webkitDisplayingFullscreen) return true;
+    if (fullscreenElement === video) return true;
+    if (fullscreenElement?.contains(video)) return true;
+    if (fullscreenElement && video.contains(fullscreenElement)) return true;
+    try {
+      if (video.matches(':fullscreen')) return true;
+    } catch {
+      // ignore
+    }
+    try {
+      if (video.matches(':-webkit-full-screen')) return true;
+    } catch {
+      // ignore
+    }
+    return false;
   };
   let activeVideo = null;
 
+  // Only start playback. Never pause a sibling video from the observer —
+  // pause() during Chrome's fullscreen enter race aborts native fullscreen.
   const startPlayback = (video) => {
-    if (activeVideo && activeVideo !== video && !isFullscreen(activeVideo)) {
-      activeVideo.pause();
+    if (shouldFreezeFullscreenLayout() || isFullscreen(video) || documentIsFullscreen()) {
+      activeVideo = video;
+      return;
     }
     activeVideo = video;
     if (!reducedMotion && video.paused) video.play().catch(() => {});
@@ -216,22 +235,25 @@ function setupVideoAutoplay(selector) {
       const video = entry.target;
       visibility.set(video, entry.isIntersecting);
       if (entry.isIntersecting) startPlayback(video);
-      // Do not pause on an exit event. Chrome can report one while it moves a
-      // native video into fullscreen, before the Fullscreen API state updates.
     });
   }, { threshold: 0.25 });
 
   const finishFullscreen = () => {
-    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
-    if (!fullscreenElement && activeVideo && !visibility.get(activeVideo)) {
-      activeVideo.pause();
-    }
+    if (shouldFreezeFullscreenLayout() || documentIsFullscreen()) return;
+    videos.forEach((video) => {
+      if (!visibility.get(video) && !isFullscreen(video) && !video.paused) {
+        video.pause();
+      }
+    });
   };
   document.addEventListener('fullscreenchange', finishFullscreen);
   document.addEventListener('webkitfullscreenchange', finishFullscreen);
 
   videos.forEach((video) => {
     observer.observe(video);
+    video.addEventListener('webkitbeginfullscreen', () => {
+      activeVideo = video;
+    });
     video.addEventListener('webkitendfullscreen', () => {
       window.setTimeout(finishFullscreen, 0);
     });
@@ -298,9 +320,6 @@ function setupSectionRail() {
 
   let frameRequested = false;
   const sectionTops = new Float64Array(sections.length);
-  const documentIsFullscreen = () => Boolean(
-    document.fullscreenElement || document.webkitFullscreenElement,
-  );
 
   const updateLayout = () => {
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
@@ -314,7 +333,7 @@ function setupSectionRail() {
 
   const updateRail = () => {
     frameRequested = false;
-    if (documentIsFullscreen()) return;
+    if (shouldFreezeFullscreenLayout()) return;
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
     const progress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
     rail.style.setProperty('--scroll-progress', progress.toFixed(4));
@@ -338,13 +357,13 @@ function setupSectionRail() {
   };
 
   const requestUpdate = () => {
-    if (frameRequested || documentIsFullscreen()) return;
+    if (frameRequested || shouldFreezeFullscreenLayout()) return;
     frameRequested = true;
     requestAnimationFrame(updateRail);
   };
 
   const relayout = () => {
-    if (documentIsFullscreen()) return;
+    if (shouldFreezeFullscreenLayout()) return;
     updateLayout();
     requestUpdate();
   };
@@ -362,13 +381,20 @@ function setupSectionRail() {
   });
 
   if ('ResizeObserver' in window) {
-    const resizeObserver = new ResizeObserver(relayout);
-    resizeObserver.observe(document.querySelector('main'));
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      const resizeObserver = new ResizeObserver(() => {
+        if (shouldFreezeFullscreenLayout()) return;
+        relayout();
+      });
+      resizeObserver.observe(mainEl);
+    }
   }
 
   relayout();
 }
 
+installFullscreenGuard();
 setupSidebarNav();
 setupPageTransitions();
 setupVideoAutoplay('[data-autoplay-video]');

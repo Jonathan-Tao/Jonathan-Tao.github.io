@@ -5,6 +5,10 @@ import {
   drawAsciiNav,
   hitTestAsciiNav,
 } from './ascii-nav.js';
+import {
+  documentIsFullscreen,
+  shouldFreezeFullscreenLayout,
+} from './fullscreen-guard.js';
 
 const COARSE_RAMP = ' .:-=+*#%@';
 const FINE_RAMP = ' .\'`^",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
@@ -277,19 +281,15 @@ export async function initAsciiField(mount) {
     }
   }
 
-  function documentIsFullscreen() {
-    return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
-  }
-
   function requestFrame() {
-    if (!reducedMotion && !document.hidden && !documentIsFullscreen() && !raf) {
+    if (!reducedMotion && !document.hidden && !shouldFreezeFullscreenLayout() && !raf) {
       raf = requestAnimationFrame(frame);
     }
   }
 
   function frame(now) {
     raf = 0;
-    if (document.hidden || documentIsFullscreen()) return;
+    if (document.hidden || shouldFreezeFullscreenLayout()) return;
     if (now - lastFrame >= FRAME_INTERVAL) {
       lastFrame = now - ((now - lastFrame) % FRAME_INTERVAL);
       draw(now);
@@ -352,20 +352,29 @@ export async function initAsciiField(mount) {
 
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
+    // Video fullscreen fires a resize storm before fullscreenElement is set.
+    // A long debounce plus the freeze guard keeps canvas rebuilds out of that
+    // window — rebuilding the full-page canvas aborts Chrome's video fullscreen.
+    const hasVideo = document.querySelector('video');
     resizeTimer = setTimeout(() => {
-      // Entering native video fullscreen resizes the viewport. Rebuilding the
-      // page canvas during that transition can disrupt Chrome's fullscreen UI.
-      if (documentIsFullscreen()) return;
+      if (shouldFreezeFullscreenLayout()) return;
       layout();
       if (reducedMotion) draw(performance.now());
-    }, 120);
+    }, hasVideo ? 2500 : 120);
   });
 
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) requestFrame();
   });
   const handleFullscreenChange = () => {
-    if (!documentIsFullscreen()) layout();
+    if (documentIsFullscreen()) {
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+      return;
+    }
+    layout();
     requestFrame();
   };
   document.addEventListener('fullscreenchange', handleFullscreenChange);
