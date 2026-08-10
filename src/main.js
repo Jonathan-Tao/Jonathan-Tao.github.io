@@ -220,8 +220,6 @@ function setupVideoAutoplay(selector) {
   };
   let activeVideo = null;
 
-  // Only start playback. Never pause a sibling video from the observer —
-  // pause() during Chrome's fullscreen enter race aborts native fullscreen.
   const startPlayback = (video) => {
     if (shouldFreezeFullscreenLayout() || isFullscreen(video) || documentIsFullscreen()) {
       activeVideo = video;
@@ -231,11 +229,21 @@ function setupVideoAutoplay(selector) {
     if (!reducedMotion && video.paused) video.play().catch(() => {});
   };
 
+  // Scrolled-away videos keep decoding otherwise, so every clip on the page
+  // ends up running at once. Pausing is skipped during a fullscreen
+  // transition, because pause() inside Chrome's fullscreen-enter race aborts
+  // native fullscreen; finishFullscreen() settles those up once it ends.
+  const stopPlayback = (video) => {
+    if (shouldFreezeFullscreenLayout() || isFullscreen(video) || documentIsFullscreen()) return;
+    if (!video.paused) video.pause();
+  };
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       const video = entry.target;
       visibility.set(video, entry.isIntersecting);
       if (entry.isIntersecting) startPlayback(video);
+      else stopPlayback(video);
     });
   }, { threshold: 0.25 });
 
@@ -249,6 +257,10 @@ function setupVideoAutoplay(selector) {
   };
   document.addEventListener('fullscreenchange', finishFullscreen);
   document.addEventListener('webkitfullscreenchange', finishFullscreen);
+  // fullscreenchange lands inside the exit freeze window, so the call above
+  // bails out. Run it again once the freeze lifts, or a video left off-screen
+  // by exiting fullscreen keeps decoding.
+  onFullscreenLayoutResume(finishFullscreen);
 
   videos.forEach((video) => {
     observer.observe(video);

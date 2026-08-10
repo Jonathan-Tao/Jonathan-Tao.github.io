@@ -595,8 +595,12 @@ body.page-inner.ascii-nav-embedded .ascii-field {
     pointer-events: none;
   }
 
+  /* The offset has to keep tracking the ASCII nav, which is painted at 18% of
+     the viewport. Capping it parked the text at 672px while the nav kept
+     sliding right, so past ~1400px the pair drifted apart and stranded the
+     whole composition left of centre. */
   body.page-inner.ascii-nav-embedded main {
-    padding: 2.5rem 2rem 4rem clamp(27rem, 48vw, 42rem);
+    padding: 2.5rem 2rem 4rem max(27rem, 48vw);
   }
 
   body.page-inner.ascii-nav-embedded .page {
