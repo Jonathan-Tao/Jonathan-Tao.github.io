@@ -595,15 +595,15 @@ body.page-inner.ascii-nav-embedded .ascii-field {
     pointer-events: none;
   }
 
-  /* The offset has to keep tracking the ASCII nav, which is painted at 18% of
-     the viewport. Capping it parked the text at 672px while the nav kept
-     sliding right, so past ~1400px the pair drifted apart and stranded the
-     whole composition left of centre. */
+  /* Symmetric padding so the fixed-width column can sit on the true viewport
+     centre. The reading column stays 48rem by design, so centring is about
+     where that column lands rather than scaling it up. */
   body.page-inner.ascii-nav-embedded main {
-    padding: 2.5rem 2rem 4rem max(27rem, 48vw);
+    padding: 2.5rem 2rem 4rem;
   }
 
   body.page-inner.ascii-nav-embedded .page {
+    margin-inline: auto;
     pointer-events: auto;
   }
 }
