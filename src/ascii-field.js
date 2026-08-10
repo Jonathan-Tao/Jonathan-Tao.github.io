@@ -8,6 +8,7 @@ import {
 import {
   documentIsFullscreen,
   shouldFreezeFullscreenLayout,
+  onFullscreenLayoutResume,
 } from './fullscreen-guard.js';
 
 const COARSE_RAMP = ' .:-=+*#%@';
@@ -353,14 +354,13 @@ export async function initAsciiField(mount) {
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     // Video fullscreen fires a resize storm before fullscreenElement is set.
-    // A long debounce plus the freeze guard keeps canvas rebuilds out of that
-    // window — rebuilding the full-page canvas aborts Chrome's video fullscreen.
-    const hasVideo = document.querySelector('video');
+    // Debounce rebuilds; the freeze guard skips work during the transition.
     resizeTimer = setTimeout(() => {
       if (shouldFreezeFullscreenLayout()) return;
       layout();
       if (reducedMotion) draw(performance.now());
-    }, hasVideo ? 2500 : 120);
+      else requestFrame();
+    }, 180);
   });
 
   document.addEventListener('visibilitychange', () => {
@@ -375,10 +375,17 @@ export async function initAsciiField(mount) {
       return;
     }
     layout();
-    requestFrame();
+    if (reducedMotion) draw(performance.now());
+    else requestFrame();
   };
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+  onFullscreenLayoutResume(() => {
+    if (documentIsFullscreen()) return;
+    layout();
+    if (reducedMotion) draw(performance.now());
+    else requestFrame();
+  });
 
   layout();
   if (reducedMotion) draw(performance.now());

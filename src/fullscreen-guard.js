@@ -1,11 +1,40 @@
-// Chrome can fire resize / IntersectionObserver callbacks while native video
-// fullscreen is still settling — before document.fullscreenElement is set.
-// Layout thrash or pause() in that window aborts fullscreen shortly after enter.
+// Chrome/Firefox fire resize and IntersectionObserver during native video
+// fullscreen transitions. Layout thrash in that window can disrupt fullscreen.
+// Freeze only while actually fullscreen (plus a short exit settle), then resume.
 
 let freezeUntil = 0;
+let resumeTimer = 0;
+const resumeListeners = new Set();
 
-function markVideoChrome(ms = 4000) {
+function scheduleResume() {
+  clearTimeout(resumeTimer);
+  // While fullscreen, wait for the exit handler instead of polling.
+  if (documentIsFullscreen()) return;
+  const delay = Math.max(0, freezeUntil - performance.now()) + 16;
+  resumeTimer = window.setTimeout(() => {
+    if (shouldFreezeFullscreenLayout()) {
+      scheduleResume();
+      return;
+    }
+    resumeListeners.forEach((listener) => {
+      try {
+        listener();
+      } catch {
+        // ignore listener errors so one bad resume cannot block others
+      }
+    });
+  }, delay);
+}
+
+function markVideoChrome(ms = 1200) {
   freezeUntil = Math.max(freezeUntil, performance.now() + ms);
+  scheduleResume();
+}
+
+function clearVideoChromeSoon() {
+  // Drop the long enter freeze; keep a brief settle for the exit resize storm.
+  freezeUntil = performance.now() + 120;
+  scheduleResume();
 }
 
 function videoMatchesFullscreen(video) {
@@ -36,9 +65,12 @@ export function documentIsFullscreen() {
 
 export function shouldFreezeFullscreenLayout() {
   if (documentIsFullscreen()) return true;
-  if (performance.now() < freezeUntil) return true;
-  if (document.activeElement?.tagName === 'VIDEO') return true;
-  return false;
+  return performance.now() < freezeUntil;
+}
+
+export function onFullscreenLayoutResume(listener) {
+  resumeListeners.add(listener);
+  return () => resumeListeners.delete(listener);
 }
 
 export function installFullscreenGuard() {
@@ -46,27 +78,19 @@ export function installFullscreenGuard() {
     const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
     const hitVideo = path.some((node) => node instanceof HTMLVideoElement)
       || event.target instanceof HTMLVideoElement;
-    if (hitVideo) markVideoChrome();
+    if (hitVideo) markVideoChrome(1200);
   };
 
-  // Capture early: native control clicks + fullscreen transitions + the resize
-  // storm that accompanies Chrome's video fullscreen UI.
   document.addEventListener('pointerdown', note, true);
   document.addEventListener('touchstart', note, true);
   window.addEventListener('resize', () => {
-    if (
-      document.fullscreenElement
-      || document.webkitFullscreenElement
-      || document.activeElement?.tagName === 'VIDEO'
-      || anyVideoWebkitFullscreen()
-    ) {
-      markVideoChrome();
-    }
+    if (documentIsFullscreen()) markVideoChrome(1200);
   }, true);
-  document.addEventListener('fullscreenchange', () => {
-    markVideoChrome(documentIsFullscreen() ? 4000 : 500);
-  });
-  document.addEventListener('webkitfullscreenchange', () => {
-    markVideoChrome(documentIsFullscreen() ? 4000 : 500);
-  });
+
+  const onFullscreenChange = () => {
+    if (documentIsFullscreen()) markVideoChrome(2000);
+    else clearVideoChromeSoon();
+  };
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 }

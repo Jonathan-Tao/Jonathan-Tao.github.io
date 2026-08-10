@@ -7,6 +7,7 @@ import {
   documentIsFullscreen,
   installFullscreenGuard,
   shouldFreezeFullscreenLayout,
+  onFullscreenLayoutResume,
 } from './fullscreen-guard.js';
 
 function setupSidebarNav() {
@@ -368,11 +369,22 @@ function setupSectionRail() {
     requestUpdate();
   };
 
+  const resumeRail = () => {
+    if (shouldFreezeFullscreenLayout()) return;
+    updateLayout();
+    requestUpdate();
+  };
+
   window.addEventListener('scroll', requestUpdate, { passive: true });
   window.addEventListener('resize', relayout, { passive: true });
   window.addEventListener('load', relayout, { once: true });
-  document.addEventListener('fullscreenchange', relayout);
-  document.addEventListener('webkitfullscreenchange', relayout);
+  document.addEventListener('fullscreenchange', () => {
+    if (!documentIsFullscreen()) resumeRail();
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    if (!documentIsFullscreen()) resumeRail();
+  });
+  onFullscreenLayoutResume(resumeRail);
   document.fonts.ready.then(relayout).catch(() => {});
 
   document.querySelectorAll('img, video').forEach((media) => {
