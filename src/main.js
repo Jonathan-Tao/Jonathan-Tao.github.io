@@ -297,6 +297,7 @@ function setupSectionRail() {
   track.className = 'section-rail-track';
   rail.appendChild(track);
 
+  const markers = [];
   const links = sections.map((section, index) => {
     const link = document.createElement('a');
     link.className = 'section-rail-link';
@@ -307,6 +308,7 @@ function setupSectionRail() {
     marker.className = 'section-rail-marker';
     marker.setAttribute('aria-hidden', 'true');
     marker.textContent = '◇';
+    markers.push(marker);
 
     const label = document.createElement('span');
     label.className = 'section-rail-label';
@@ -321,9 +323,15 @@ function setupSectionRail() {
 
   let frameRequested = false;
   const sectionTops = new Float64Array(sections.length);
+  // Cached so the scroll handler never reads scrollHeight, which would force a
+  // synchronous layout on every frame of every scroll. relayout() refreshes it
+  // whenever the document can actually have changed height.
+  let maxScroll = 1;
+  let lastActiveIndex = -1;
+  let lastProgress = '';
 
   const updateLayout = () => {
-    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
     sections.forEach((section, index) => {
       const top = section.getBoundingClientRect().top + window.scrollY;
       sectionTops[index] = top;
@@ -335,26 +343,32 @@ function setupSectionRail() {
   const updateRail = () => {
     frameRequested = false;
     if (shouldFreezeFullscreenLayout()) return;
-    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-    const progress = Math.min(1, Math.max(0, window.scrollY / maxScroll));
-    rail.style.setProperty('--scroll-progress', progress.toFixed(4));
+    const scrollY = window.scrollY;
+    const progress = Math.min(1, Math.max(0, scrollY / maxScroll)).toFixed(4);
+    if (progress !== lastProgress) {
+      lastProgress = progress;
+      rail.style.setProperty('--scroll-progress', progress);
+    }
 
-    const readingLine = window.scrollY + window.innerHeight * 0.38;
+    const readingLine = scrollY + window.innerHeight * 0.38;
     let activeIndex = 0;
-    sectionTops.forEach((top, index) => {
-      if (top <= readingLine) activeIndex = index;
-    });
+    for (let index = 0; index < sectionTops.length; index += 1) {
+      if (sectionTops[index] <= readingLine) activeIndex = index;
+    }
 
-    links.forEach((link, index) => {
-      const active = index === activeIndex;
-      link.classList.toggle('is-active', active);
-      link.querySelector('.section-rail-marker').textContent = active ? '◆' : '◇';
-      if (active) {
-        link.setAttribute('aria-current', 'location');
-        rail.dataset.current = sections[index].dataset.sectionLabel;
-      }
-      else link.removeAttribute('aria-current');
-    });
+    // Rewriting class, text and attributes every frame invalidates style for
+    // the whole rail; the active section only changes on section boundaries.
+    if (activeIndex === lastActiveIndex) return;
+    if (lastActiveIndex >= 0) {
+      links[lastActiveIndex].classList.remove('is-active');
+      links[lastActiveIndex].removeAttribute('aria-current');
+      markers[lastActiveIndex].textContent = '◇';
+    }
+    lastActiveIndex = activeIndex;
+    links[activeIndex].classList.add('is-active');
+    links[activeIndex].setAttribute('aria-current', 'location');
+    markers[activeIndex].textContent = '◆';
+    rail.dataset.current = sections[activeIndex].dataset.sectionLabel;
   };
 
   const requestUpdate = () => {

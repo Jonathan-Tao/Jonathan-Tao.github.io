@@ -1,5 +1,7 @@
 const NAV_RAMP = ' .:-=+*oO#%@';
 const UI_SCALE = 8;
+// Shared zero sample so the no-ripple path does not allocate per glyph.
+const NO_RIPPLE = { b: 0, ox: 0, oy: 0 };
 
 export const ASCII_NAV_HI = 2;
 
@@ -62,22 +64,52 @@ export function buildAsciiNav(cols, rows) {
   let cursorY = 5;
 
   readNavItems().forEach((item, id) => {
-    context.fillStyle = '#000';
-    context.fillRect(0, 0, width, height);
-    context.fillStyle = '#fff';
     context.font = `${fontSize * UI_SCALE}px "Share Tech Mono", "Courier New", monospace`;
     context.letterSpacing = `${fontSize * UI_SCALE * 0.22}px`;
-    context.fillText(item.label, navX * UI_SCALE, cursorY * UI_SCALE);
-    const { data } = context.getImageData(0, 0, width, height);
 
-    for (let hy = 0; hy < hiRows; hy += 1) {
-      for (let hx = 0; hx < hiCols; hx += 1) {
+    const penX = navX * UI_SCALE;
+    const penY = cursorY * UI_SCALE;
+    // Only the cells the label's ink can touch need sampling. Measuring the
+    // run first keeps the pixel scan to that window instead of the whole
+    // canvas, which is ~40x less work per label at desktop grid sizes.
+    const metrics = context.measureText(item.label);
+    const pad = fontSize * UI_SCALE;
+    const inkLeft = penX - (metrics.actualBoundingBoxLeft || 0) - pad;
+    const inkRight = penX + Math.max(metrics.actualBoundingBoxRight || 0, metrics.width) + pad;
+    const inkTop = penY - (metrics.actualBoundingBoxAscent || 0) - pad;
+    const inkBottom = penY + (metrics.actualBoundingBoxDescent || fontSize * UI_SCALE) + pad;
+
+    // Snap the window out to whole portrait cells so both sample grids stay
+    // aligned with the full-grid indices they write into.
+    const gx0 = Math.max(0, Math.floor(inkLeft / UI_SCALE));
+    const gy0 = Math.max(0, Math.floor(inkTop / UI_SCALE));
+    const gx1 = Math.min(cols - 1, Math.ceil(inkRight / UI_SCALE));
+    const gy1 = Math.min(rows - 1, Math.ceil(inkBottom / UI_SCALE));
+    cursorY += rowStep;
+    if (gx1 < gx0 || gy1 < gy0) return;
+
+    const boxX = gx0 * UI_SCALE;
+    const boxY = gy0 * UI_SCALE;
+    const boxW = (gx1 - gx0 + 1) * UI_SCALE;
+    const boxH = (gy1 - gy0 + 1) * UI_SCALE;
+
+    // Labels stack close enough to overlap, so repaint this window opaque
+    // before drawing into it. The matte has to stay opaque black: antialiased
+    // edges over transparent read back unpremultiplied and skew the coverage.
+    context.fillStyle = '#000';
+    context.fillRect(boxX, boxY, boxW, boxH);
+    context.fillStyle = '#fff';
+    context.fillText(item.label, penX, penY);
+    const { data } = context.getImageData(boxX, boxY, boxW, boxH);
+
+    for (let hy = gy0 * ASCII_NAV_HI; hy < (gy1 + 1) * ASCII_NAV_HI; hy += 1) {
+      for (let hx = gx0 * ASCII_NAV_HI; hx < (gx1 + 1) * ASCII_NAV_HI; hx += 1) {
         let sum = 0;
-        const x0 = hx * hiCell;
-        const y0 = hy * hiCell;
+        const x0 = hx * hiCell - boxX;
+        const y0 = hy * hiCell - boxY;
         for (let sy = 0; sy < hiCell; sy += 1) {
           for (let sx = 0; sx < hiCell; sx += 1) {
-            sum += data[((y0 + sy) * width + (x0 + sx)) * 4] / 255;
+            sum += data[((y0 + sy) * boxW + (x0 + sx)) * 4] / 255;
           }
         }
         const alpha = sum / (hiCell * hiCell);
@@ -93,14 +125,14 @@ export function buildAsciiNav(cols, rows) {
     let maxY = 0;
     let found = false;
 
-    for (let y = 0; y < rows; y += 1) {
-      for (let x = 0; x < cols; x += 1) {
+    for (let y = gy0; y <= gy1; y += 1) {
+      for (let x = gx0; x <= gx1; x += 1) {
         let sum = 0;
-        const x0 = x * UI_SCALE;
-        const y0 = y * UI_SCALE;
+        const x0 = x * UI_SCALE - boxX;
+        const y0 = y * UI_SCALE - boxY;
         for (let sy = 0; sy < UI_SCALE; sy += 1) {
           for (let sx = 0; sx < UI_SCALE; sx += 1) {
-            sum += data[((y0 + sy) * width + (x0 + sx)) * 4] / 255;
+            sum += data[((y0 + sy) * boxW + (x0 + sx)) * 4] / 255;
           }
         }
         const alpha = sum / (UI_SCALE * UI_SCALE);
@@ -125,7 +157,6 @@ export function buildAsciiNav(cols, rows) {
         maxY: Math.min(rows - 1, maxY + 1),
       });
     }
-    cursorY += rowStep;
   });
 
   return {
@@ -179,7 +210,7 @@ export function drawAsciiNav(context, nav, options) {
     hoveredId,
     foreground,
     accent,
-    rippleField = () => ({ b: 0, ox: 0, oy: 0 }),
+    rippleField = () => NO_RIPPLE,
   } = options;
   const { t, scanNorm, driftX, driftY } = motion;
   const scanY = scanNorm * (window.innerHeight / cellH);
@@ -209,8 +240,11 @@ export function drawAsciiNav(context, nav, options) {
           : Math.min(1, Math.max(0, (1 - alpha) * 0.82 - band * 0.1 - wave * 0.025 + ripple.b * 0.12));
         const ox = isHovered ? 0 : (reducedMotion ? 0 : driftX * 0.18 + wave * 0.18) + ripple.ox * hiCellW;
         const oy = isHovered ? 0 : (reducedMotion ? 0 : driftY * 0.15) + ripple.oy * hiCellH;
+        const glyph = charFromRamp(brightness);
+        // A blank ramp step paints nothing; skipping it drops the draw call.
+        if (glyph === ' ') continue;
         context.globalAlpha = isHovered ? 1 : 0.88 + band * 0.12;
-        context.fillText(charFromRamp(brightness), px + ox, py + oy);
+        context.fillText(glyph, px + ox, py + oy);
       }
     }
   });

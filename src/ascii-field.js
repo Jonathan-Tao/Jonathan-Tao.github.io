@@ -21,6 +21,9 @@ const WAVE_K = 0.09;
 const WAVE_TAU = 1.3;
 const WAVE_BAND = 40;
 const MAX_RIPPLES = 8;
+const NEAR_POINTER = 170;
+const NEAR_POINTER_SQ = NEAR_POINTER * NEAR_POINTER;
+const RIPPLE_CUT = WAVE_BAND * 2.5;
 
 const DUOTONE = (() => {
   const stops = [
@@ -68,7 +71,10 @@ export async function initAsciiField(mount) {
   canvas.setAttribute('aria-label', 'Interactive duotone ASCII background with site navigation');
   mount.appendChild(canvas);
 
-  const context = canvas.getContext('2d', { desynchronized: true });
+  // No desynchronized/low-latency context here: on Windows Chrome it puts the
+  // canvas on a low-latency swap chain that presents partially drawn frames,
+  // which reads as heavy flicker on a full-viewport canvas.
+  const context = canvas.getContext('2d');
   const start = performance.now();
   let cols = 0;
   let rows = 0;
@@ -91,6 +97,7 @@ export async function initAsciiField(mount) {
   let waveSin = null;
   let waveCos = null;
   let cursor = 'crosshair';
+  let cachedRect = null;
   const rippleSample = { b: 0, ox: 0, oy: 0 };
   let background = '#dcc8a5';
   let foreground = '#2a1d13';
@@ -99,6 +106,7 @@ export async function initAsciiField(mount) {
   await document.fonts.load('60px "Share Tech Mono"').catch(() => {});
 
   function layout() {
+    cachedRect = null;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
@@ -176,7 +184,7 @@ export async function initAsciiField(mount) {
       const dy = y - ripple.y;
       const distance = Math.hypot(dx, dy);
       const difference = distance - ripple.radius;
-      if (Math.abs(difference) > WAVE_BAND * 2.5) continue;
+      if (difference < -RIPPLE_CUT || difference > RIPPLE_CUT) continue;
       const envelope = Math.exp(-(difference ** 2) / (2 * WAVE_BAND ** 2)) * ripple.amplitude;
       const strength = Math.sin(difference * WAVE_K) * envelope;
       brightness += strength;
@@ -222,33 +230,50 @@ export async function initAsciiField(mount) {
     let lastAlpha = -1;
 
     const hoveredRegion = nav.regions.find((region) => region.id === hoveredId);
+    const hasRipples = ripples.length > 0;
+    const pointerLive = pointer.active && !hit;
+    const pointerX = pointer.x;
+    const pointerY = pointer.y;
     for (let y = 0; y < rows; y += 1) {
+      const rowIndex = y * cols;
+      const band = Math.max(0, 1 - Math.abs(y - scanY) / 6);
+      const py = centerY[y];
+      const rowY = y * cellH;
+      const bandDriftX = driftX * (0.15 + band * 0.35);
+      const bandDriftY = driftY * (0.1 + band * 0.25);
+      const bandBrightness = band * 0.07;
+      const inHoverRow = hoveredRegion && y >= hoveredRegion.minY && y <= hoveredRegion.maxY;
+      const onHoverEdgeRow = inHoverRow
+        && (y === hoveredRegion.minY || y === hoveredRegion.maxY);
+      const dy = py - pointerY;
+      const dySq = dy * dy;
       for (let x = 0; x < cols; x += 1) {
-        const index = y * cols + x;
+        const index = rowIndex + x;
         const wave = (waveSin[index] * waveTimeCos + waveCos[index] * waveTimeSin) * 0.03;
-        const band = Math.max(0, 1 - Math.abs(y - scanY) / 6);
         const px = centerX[x];
-        const py = centerY[y];
-        const ripple = ripples.length ? sampleRipple(px, py) : null;
-        const inHover = hoveredRegion
-          && x >= hoveredRegion.minX && x <= hoveredRegion.maxX
-          && y >= hoveredRegion.minY && y <= hoveredRegion.maxY;
+        const ripple = hasRipples ? sampleRipple(px, py) : null;
+        const inHover = inHoverRow && x >= hoveredRegion.minX && x <= hoveredRegion.maxX;
 
-        let brightness = field[index] + breath + wave + band * 0.07 + (ripple ? ripple.b * 0.2 : 0);
+        let brightness = field[index] + breath + wave + bandBrightness
+          + (ripple ? ripple.b * 0.2 : 0);
         if (inHover) {
-          const edge = x === hoveredRegion.minX || x === hoveredRegion.maxX
-            || y === hoveredRegion.minY || y === hoveredRegion.maxY;
+          const edge = onHoverEdgeRow || x === hoveredRegion.minX || x === hoveredRegion.maxX;
           brightness = edge ? 0.05 : 0.92;
         } else if (embeddedNav && nav.halo[index] > 0.2) {
           brightness = Math.max(brightness, 0.96);
         }
         brightness = Math.min(1, Math.max(0, brightness));
 
-        const nearPointer = pointer.active && !hit
-          && Math.hypot(px - pointer.x, py - pointer.y) < 170;
+        // Squared distance only gates the call; the ramp choice still uses the
+        // same hypot the original did, so glyphs pick identically.
+        const dx = px - pointerX;
+        const nearPointer = pointerLive && dx * dx + dySq < NEAR_POINTER_SQ
+          && Math.hypot(dx, dy) < NEAR_POINTER;
         const glyph = charFromRamp(nearPointer ? FINE_RAMP : COARSE_RAMP, brightness);
-        const offsetX = driftX * (0.15 + band * 0.35) + (ripple ? ripple.ox * cellW * 0.8 : 0);
-        const offsetY = driftY * (0.1 + band * 0.25) + (ripple ? ripple.oy * cellH * 0.8 : 0);
+        // A blank ramp step paints nothing, so the whole cell can be skipped.
+        if (glyph === ' ') continue;
+        const offsetX = bandDriftX + (ripple ? ripple.ox * cellW * 0.8 : 0);
+        const offsetY = bandDriftY + (ripple ? ripple.oy * cellH * 0.8 : 0);
         const fillStyle = duotoneColor(brightness);
         const alpha = nearPointer ? 0.88 : 0.58 + band * 0.2;
         if (fillStyle !== lastFillStyle) {
@@ -259,7 +284,7 @@ export async function initAsciiField(mount) {
           lastAlpha = alpha;
           context.globalAlpha = alpha;
         }
-        context.fillText(glyph, x * cellW + offsetX, y * cellH + offsetY);
+        context.fillText(glyph, x * cellW + offsetX, rowY + offsetY);
       }
     }
 
@@ -305,8 +330,15 @@ export async function initAsciiField(mount) {
     ));
   }
 
+  // getBoundingClientRect forces layout, so caching it keeps pointermove off
+  // the layout path. The canvas is viewport-fixed, so only a resize moves it.
+  function canvasRect() {
+    if (!cachedRect) cachedRect = canvas.getBoundingClientRect();
+    return cachedRect;
+  }
+
   function updatePointer(event) {
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRect();
     pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top, active: true };
   }
 
@@ -336,7 +368,7 @@ export async function initAsciiField(mount) {
 
   window.addEventListener('click', (event) => {
     if (eventTargetsControl(event)) return;
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRect();
     const target = hitTestAsciiNav(
       hitBoxes,
       event.clientX - rect.left,
@@ -352,6 +384,7 @@ export async function initAsciiField(mount) {
   }, true);
 
   window.addEventListener('resize', () => {
+    cachedRect = null;
     clearTimeout(resizeTimer);
     // Video fullscreen fires a resize storm before fullscreenElement is set.
     // Debounce rebuilds; the freeze guard skips work during the transition.

@@ -3,19 +3,13 @@ import { buildAsciiNav, drawAsciiNav } from './ascii-nav.js';
 
 const COARSE_RAMP = ' .:-=+*#%@';
 const FINE_RAMP = ' .\'`^",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
-// a clean, tidy ramp for the nav letterforms — no busy punctuation
-const NAV_RAMP = ' .:-=+*oO#%@';
 const PHOTO_SRC = '/currentPhoto.webp';
 const FONT = '11px "Share Tech Mono", "Courier New", monospace';
 const CELL = 9;
 const FRAME_INTERVAL = 1000 / 30;
 const REVEAL_RADIUS = 120;
 const REVEAL_FALLOFF = 175;
-const UI_SCALE = 8;
-// nav letters are rendered on a sub-grid HI× finer than the portrait grid, so
-// each letter is built from smaller glyphs (higher HI = more, tinier glyphs;
-// UI_SCALE must divide evenly by HI)
-const HI = 2;
+const REVEAL_FALLOFF_SQ = REVEAL_FALLOFF * REVEAL_FALLOFF;
 
 // Water-wake ripples: dragging the cursor drops expanding wavelets along its
 // path (like a leaf through water) that travel outward and fade.
@@ -111,160 +105,6 @@ function sampleGrid(img, cols, rows) {
   return grid;
 }
 
-function readNavItems() {
-  return [...document.querySelectorAll('#site-nav a')].map((a) => ({
-    label: a.textContent.replace(/\s+/g, ' ').trim().toUpperCase(),
-    href: a.getAttribute('href') || '/',
-    current: a.getAttribute('aria-current') === 'page',
-  }));
-}
-
-function dilate(src, cols, rows, radius = 1) {
-  const out = new Float32Array(src.length);
-  for (let y = 0; y < rows; y += 1) {
-    for (let x = 0; x < cols; x += 1) {
-      let m = 0;
-      for (let dy = -radius; dy <= radius; dy += 1) {
-        for (let dx = -radius; dx <= radius; dx += 1) {
-          const nx = x + dx;
-          const ny = y + dy;
-          if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
-          m = Math.max(m, src[ny * cols + nx]);
-        }
-      }
-      out[y * cols + x] = m;
-    }
-  }
-  return out;
-}
-
-function buildUiMasks(cols, rows) {
-  const letter = new Float32Array(cols * rows);
-  const idMap = new Int16Array(cols * rows);
-  idMap.fill(-1);
-  const hiCols = cols * HI;
-  const hiRows = rows * HI;
-  const letterHi = new Float32Array(hiCols * hiRows);
-  const hiCell = UI_SCALE / HI;
-  const regions = [];
-
-  const w = cols * UI_SCALE;
-  const h = rows * UI_SCALE;
-  const off = document.createElement('canvas');
-  off.width = w;
-  off.height = h;
-  const octx = off.getContext('2d', { willReadFrequently: true });
-  octx.fillStyle = '#000';
-  octx.fillRect(0, 0, w, h);
-  octx.fillStyle = '#fff';
-  octx.textBaseline = 'top';
-  octx.textAlign = 'left';
-
-  const jobs = [];
-
-  function queueText(text, fontPx, gridX, gridY, meta) {
-    jobs.push({ text, fontPx, gridX, gridY, meta });
-  }
-
-  // anchor the nav's left edge at ~18% of the page width, so it holds that
-  // position regardless of screen size
-  const navX = Math.round(cols * 0.18);
-
-  // step must clear the cap height (~0.75 * fontPx grid rows) or the words
-  // overlap vertically and turn to mush
-  let cursorY = 5;
-  readNavItems().forEach((item, i) => {
-    queueText(item.label, 4.5, navX, cursorY, {
-      id: i,
-      href: item.href,
-      kind: 'nav',
-      current: item.current,
-    });
-    cursorY += 5.4;
-  });
-
-  // Draw each label alone, sample bounds, accumulate into letter mask
-  jobs.forEach((job) => {
-    octx.fillStyle = '#000';
-    octx.fillRect(0, 0, w, h);
-    octx.fillStyle = '#fff';
-    octx.font = `${job.fontPx * UI_SCALE}px "Share Tech Mono", "Courier New", monospace`;
-    // space the letters out so words read airily, like a normal nav
-    octx.letterSpacing = job.meta.kind === 'nav'
-      ? `${job.fontPx * UI_SCALE * 0.22}px`
-      : '0px';
-    octx.fillText(job.text, job.gridX * UI_SCALE, job.gridY * UI_SCALE);
-    const { data } = octx.getImageData(0, 0, w, h);
-
-    // fine sub-grid coverage — many small cells per letter for crisp ASCII text
-    for (let hy = 0; hy < hiRows; hy += 1) {
-      for (let hx = 0; hx < hiCols; hx += 1) {
-        let hsum = 0;
-        const hx0 = hx * hiCell;
-        const hy0 = hy * hiCell;
-        for (let sy = 0; sy < hiCell; sy += 1) {
-          for (let sx = 0; sx < hiCell; sx += 1) {
-            hsum += data[((hy0 + sy) * w + (hx0 + sx)) * 4] / 255;
-          }
-        }
-        const ha = hsum / (hiCell * hiCell);
-        if (ha < 0.14) continue;
-        const hidx = hy * hiCols + hx;
-        if (ha > letterHi[hidx]) letterHi[hidx] = ha;
-      }
-    }
-
-    let minX = cols;
-    let minY = rows;
-    let maxX = 0;
-    let maxY = 0;
-    let found = false;
-
-    for (let y = 0; y < rows; y += 1) {
-      for (let x = 0; x < cols; x += 1) {
-        let sum = 0;
-        const x0 = x * UI_SCALE;
-        const y0 = y * UI_SCALE;
-        for (let sy = 0; sy < UI_SCALE; sy += 1) {
-          for (let sx = 0; sx < UI_SCALE; sx += 1) {
-            sum += data[((y0 + sy) * w + (x0 + sx)) * 4] / 255;
-          }
-        }
-        const a = sum / (UI_SCALE * UI_SCALE);
-        if (a < 0.18) continue;
-        found = true;
-        const idx = y * cols + x;
-        letter[idx] = Math.max(letter[idx], a);
-        idMap[idx] = job.meta.id;
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
-      }
-    }
-
-    if (!found) return;
-
-    // pad hit region
-    minX = Math.max(0, minX - 1);
-    minY = Math.max(0, minY - 1);
-    maxX = Math.min(cols - 1, maxX + 1);
-    maxY = Math.min(rows - 1, maxY + 1);
-
-    regions.push({
-      ...job.meta,
-      label: job.text,
-      minX,
-      minY,
-      maxX,
-      maxY,
-    });
-  });
-
-  const halo = dilate(letter, cols, rows, 1);
-  return { letter, halo, idMap, regions, letterHi, hiCols, hiRows };
-}
-
 export async function initAsciiPortrait(mount) {
   if (!mount) return;
 
@@ -279,7 +119,10 @@ export async function initAsciiPortrait(mount) {
   );
   mount.appendChild(canvas);
 
-  const ctx = canvas.getContext('2d', { desynchronized: true });
+  // No desynchronized/low-latency context here: on Windows Chrome it puts the
+  // canvas on a low-latency swap chain that presents partially drawn frames,
+  // which reads as heavy flicker on a full-viewport canvas.
+  const ctx = canvas.getContext('2d');
   let img;
   try {
     img = await loadImage(PHOTO_SRC);
@@ -318,12 +161,14 @@ export async function initAsciiPortrait(mount) {
   let waveSin = null;
   let waveCos = null;
   let cursor = 'crosshair';
+  let cachedRect = null;
   const rippleSample = { b: 0, ox: 0, oy: 0 };
   let bg = '#dcc8a5';
   let fg = '#111';
   let accent = '#d95c16';
 
   function layout() {
+    cachedRect = null;
     const rect = mount.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const nextCssW = Math.max(1, Math.floor(rect.width));
@@ -487,38 +332,58 @@ export async function initAsciiPortrait(mount) {
     let lastFillStyle = fg;
     let lastAlpha = -1;
 
+    const hasRipples = ripples.length > 0;
+    const revealing = pointer.active && !reducedMotion && !hit;
+    const pointerX = pointer.x;
+    const pointerY = pointer.y;
+    const fineCols = cols * 2;
+
     for (let y = 0; y < rows; y += 1) {
+      const rowIndex = y * cols;
+      const band = Math.max(0, 1 - Math.abs(y - scanY) / 5);
+      const cy = centerY[y];
+      const rowY = y * cellH;
+      const rowDriftX = driftX * (0.15 + band * 0.35);
+      const rowDriftY = driftY * (0.1 + band * 0.25);
+      const bandBrightness = band * 0.08;
+      const inHoverRow = hoveredRegion
+        && y >= hoveredRegion.minY && y <= hoveredRegion.maxY;
+      const onHoverEdgeRow = inHoverRow
+        && (y === hoveredRegion.minY || y === hoveredRegion.maxY);
+      const dy = cy - pointerY;
+      const dySq = dy * dy;
+
       for (let x = 0; x < cols; x += 1) {
-        const idx = y * cols + x;
+        const idx = rowIndex + x;
         const L = letter[idx];
         const H = halo[idx];
-        const inHoverBox = hoveredRegion
-          && x >= hoveredRegion.minX && x <= hoveredRegion.maxX
-          && y >= hoveredRegion.minY && y <= hoveredRegion.maxY;
+        const inHoverBox = inHoverRow
+          && x >= hoveredRegion.minX && x <= hoveredRegion.maxX;
 
         const wave = (waveSin[idx] * waveTimeCos + waveCos[idx] * waveTimeSin) * 0.03;
-        const band = Math.max(0, 1 - Math.abs(y - scanY) / 5);
-        // no random per-cell flicker — it read as noise
-        const flicker = 0;
 
         const cx = centerX[x];
-        const cy = centerY[y];
-        const influence = pointer.active && !reducedMotion && !hit
-          ? Math.max(0, 1 - (Math.hypot(cx - pointer.x, cy - pointer.y) - REVEAL_RADIUS)
-            / (REVEAL_FALLOFF - REVEAL_RADIUS))
-          : 0;
+        // Outside the falloff the influence term clamps to zero anyway, so the
+        // square root only has to run for cells inside the reveal disc.
+        let influence = 0;
+        if (revealing) {
+          const dx = cx - pointerX;
+          if (dx * dx + dySq < REVEAL_FALLOFF_SQ) {
+            influence = Math.max(0, 1 - (Math.hypot(dx, dy) - REVEAL_RADIUS)
+              / (REVEAL_FALLOFF - REVEAL_RADIUS));
+          }
+        }
         // Wake calculations are unnecessary until a ripple exists.
-        const rf = ripples.length ? rippleField(cx, cy) : null;
+        const rf = hasRipples ? rippleField(cx, cy) : null;
 
-        let b = applyContrast(coarse[idx]) + breath + wave + band * 0.08 + flicker;
+        let b = applyContrast(coarse[idx]) + breath + wave + bandBrightness;
         let useFine = influence > 0.35;
 
-        if (inHoverBox && hoveredRegion) {
+        if (inHoverBox) {
           // solidify as ASCII panel: light field + dark border
-          const onEdge = x === hoveredRegion.minX
-            || x === hoveredRegion.maxX
-            || y === hoveredRegion.minY
-            || y === hoveredRegion.maxY;
+          const onEdge = onHoverEdgeRow
+            || x === hoveredRegion.minX
+            || x === hoveredRegion.maxX;
           if (onEdge) b = 0.05;
           else b = 0.92;
           useFine = true;
@@ -533,26 +398,28 @@ export async function initAsciiPortrait(mount) {
 
         b = Math.min(1, Math.max(0, b));
 
-        // the wake also sloshes cells radially, like water displacement
-        const ox = driftX * (0.15 + band * 0.35) * (influence > 0.2 ? 0.2 : 1)
-          + (rf ? rf.ox * cellW * 0.85 : 0);
-        const oy = driftY * (0.1 + band * 0.25)
-          + (rf ? rf.oy * cellH * 0.85 : 0);
-
+        const isLetter = L > 0.15;
         let ch;
-        if (useFine || L > 0.15) {
-          if (influence > 0.35 && L < 0.15) {
-            const fx = Math.min(cols * 2 - 1, Math.floor((x + 0.5) * 2));
+        if (useFine || isLetter) {
+          if (influence > 0.35 && !isLetter) {
+            const fx = Math.min(fineCols - 1, Math.floor((x + 0.5) * 2));
             const fy = Math.min(rows * 2 - 1, Math.floor((y + 0.5) * 2));
-            b = Math.min(1, Math.max(0, fine[fy * cols * 2 + fx] + breath * 0.5 + wave));
+            b = Math.min(1, Math.max(0, fine[fy * fineCols + fx] + breath * 0.5 + wave));
           }
           ch = charFromRamp(FINE_RAMP, b);
         } else {
           ch = charFromRamp(COARSE_RAMP, b);
         }
+        // A blank ramp step paints nothing, so the whole cell can be skipped.
+        if (ch === ' ') continue;
 
-        const alpha = useFine || L > 0.15
-          ? (L > 0.15 ? 0.95 : 0.65 + influence * 0.35)
+        // the wake also sloshes cells radially, like water displacement
+        const ox = rowDriftX * (influence > 0.2 ? 0.2 : 1)
+          + (rf ? rf.ox * cellW * 0.85 : 0);
+        const oy = rowDriftY + (rf ? rf.oy * cellH * 0.85 : 0);
+
+        const alpha = useFine || isLetter
+          ? (isLetter ? 0.95 : 0.65 + influence * 0.35)
           : 0.7 + band * 0.25 + influence * 0.2;
         const fillStyle = duotoneColor(b);
         if (fillStyle !== lastFillStyle) {
@@ -563,7 +430,7 @@ export async function initAsciiPortrait(mount) {
           lastAlpha = alpha;
           ctx.globalAlpha = alpha;
         }
-        ctx.fillText(ch, x * cellW + ox, y * cellH + oy);
+        ctx.fillText(ch, x * cellW + ox, rowY + oy);
       }
     }
 
@@ -609,15 +476,27 @@ export async function initAsciiPortrait(mount) {
 
   new ResizeObserver(() => layout()).observe(mount);
 
+  // getBoundingClientRect forces layout, so caching it keeps pointermove off
+  // the layout path. Resize, scroll and relayout drop the cached rect.
+  const canvasRect = () => {
+    if (!cachedRect) cachedRect = canvas.getBoundingClientRect();
+    return cachedRect;
+  };
+  const dropCachedRect = () => {
+    cachedRect = null;
+  };
+  window.addEventListener('scroll', dropCachedRect, { passive: true });
+  window.addEventListener('resize', dropCachedRect, { passive: true });
+
   const onMove = (clientX, clientY) => {
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRect();
     pointer = { x: clientX - rect.left, y: clientY - rect.top, active: true };
   };
 
   // a click drops a single wavelet that rings outward from the point pressed
   const spawnRipple = (clientX, clientY) => {
     if (reducedMotion) return;
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRect();
     ripples.push({
       x: clientX - rect.left,
       y: clientY - rect.top,
@@ -638,7 +517,7 @@ export async function initAsciiPortrait(mount) {
     spawnRipple(e.clientX, e.clientY);
   });
   canvas.addEventListener('click', (e) => {
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRect();
     const target = hitTest(e.clientX - rect.left, e.clientY - rect.top);
     if (!target) return;
     if (target.external) window.open(target.href, '_blank', 'noopener,noreferrer');
