@@ -72,11 +72,15 @@
             <h2>Illini Electric Motorsports (UIUC FSAE)</h2>
             <h3>Driverless Lead</h3>
             <p class="role">Jul 2026 – Present</p>
-            <p>Built a C++/ROS 2 perception pipeline for an Ouster OS1 using Patchwork++ ground removal,
-              range-adaptive curved-voxel clustering, and a PointNet classifier. Recorded-scene replay detected cones
-              at 35 meters with end-to-end p95 latency below 21 ms.</p>
-            <p>Developing Delaunay-triangulation path planning, lateral and speed controllers, and an Altium integration
-              board with CAN, hardware watchdogs, and driverless safety circuits.</p>
+            <p>Leading development of a sensor-driven C++/ROS 2 perception pipeline for an Ouster OS1 LiDAR, with
+              motion deskewing, vehicle-frame filtering, Patchwork++ ground removal, and range-adaptive curved-voxel
+              clustering.</p>
+            <p>Designed a frame-wide PointNet transformer that encodes 64-point XYZI cone candidates and applies 12
+              geometry-biased, eight-head attention blocks with mission context. Deployed dynamic-candidate inference
+              through ONNX Runtime with TensorRT, CUDA, and CPU support.</p>
+            <p>Implemented close-cluster merging, odometry-associated temporal confirmation, mission-aware color policy,
+              and uncertainty-calibrated localization. Achieved 98.97% precision on a 630-frame real-scene replay, with
+              every measured callback below 1.9 ms p95.</p>
             <p><a class="inline-project-link" href="/projects.html#driverless-perception">View perception project →</a></p>
             <h3>BMS Project Lead</h3>
             <p class="role">Aug 2025 – Present</p>
