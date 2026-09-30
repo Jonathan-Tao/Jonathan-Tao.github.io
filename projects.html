@@ -56,37 +56,35 @@
         <article id="driverless-perception" class="project project-article" data-section-label="Driverless">
           <h2>Driverless Perception Pipeline</h2>
 
-          <figure class="project-figure project-figure-video">
-            <div class="project-video-frame">
-              <video class="project-video" controls muted loop playsinline preload="none"
-                poster="/driverless-transformer-poster.webp" data-autoplay-video>
-                <source src="/hero_frame30.webm" data-mobile-src="/hero_frame30-mobile.webm" type="video/webm">
-                <source src="/hero_frame30.mp4" data-mobile-src="/hero_frame30-mobile.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-              </video>
-            </div>
-            <figcaption>An animated walkthrough of the frame-wide PointNet transformer, from point sampling through
-              candidate attention.</figcaption>
+          <figure class="project-figure project-figure-wide">
+            <img src="/driverless-lidar-test.webp"
+              alt="Ouster OS1 LiDAR on a test stand facing a course of orange cones at night, with a laptop running the pipeline"
+              width="1767" height="900" loading="lazy" decoding="async">
+            <figcaption>Bench testing the OS1-128 against a cone course at night.</figcaption>
           </figure>
 
-          <p class="project-stack">C++, ROS 2, Ouster OS1, Patchwork++, PointNet Transformer, ONNX Runtime, TensorRT</p>
-          <p>Built a LiDAR-only ROS 2 perception pipeline for an Ouster OS1. It deskews each scan from odometry, IMU, and
-            twist data, transforms the cloud into the vehicle frame, removes ego and out-of-range returns, and uses
-            Patchwork++ to separate ground from obstacles.</p>
+          <p class="project-stack">C++, ROS 2, Ouster OS1-128, PointNet Transformer, ONNX Runtime, TensorRT, Jetson AGX Orin</p>
+          <p>Built a LiDAR-only ROS 2 perception pipeline for an Ouster OS1-128. It deskews each scan from odometry and
+            IMU data, transforms the cloud into the vehicle frame, and removes ego and out-of-range returns before
+            ground segmentation.</p>
+          <p>Replaced the vendored Patchwork++ with an in-house ground segmenter. It bins the cloud into concentric
+            zones, fits a PCA plane to each patch from low seed points, rejects patches that are not upright, and keeps
+            sparse distant patches as obstacles so far cones survive. Parallel binning and allocation-free patch
+            processing removed about 72,000 heap allocations per frame and cut p95 latency from 3.91 ms to 0.95 ms.</p>
           <p>Range-adaptive curved-voxel clustering groups obstacle returns into size-gated cone candidates. For each
-            candidate, the C++ runtime samples up to 64 XYZI returns and canonicalizes their coordinates within the
-            candidate box. A shared 4→64→64 PointNet MLP produces point features, then masked maximum, mean, and standard
-            deviation pooling creates a 192-value shape descriptor. The graph appends intensity summaries, six physical
-            box features, and five position features before projecting each candidate to a 128-value token.</p>
+            candidate, the C++ runtime samples up to 64 XYZ returns and canonicalizes them into the candidate box frame.
+            A shared 6→64→128 PointNet MLP produces point features, then masked maximum, mean, and standard deviation
+            pooling creates a 384-value shape descriptor. The graph appends twelve box features and five position
+            features before projecting each candidate to a 128-value token.</p>
 
           <figure class="project-figure project-figure-wide">
             <a class="project-figure-link" href="/driverless-cloud-encoder.webp" target="_blank" rel="noopener noreferrer"
               aria-label="Open the PointNet candidate encoder flowchart at full size">
               <img src="/driverless-cloud-encoder.webp"
-                alt="Flowchart from masked XYZI point rows through PointNet pooling and candidate token projection"
-                width="2034" height="528" loading="lazy" decoding="async">
+                alt="Flowchart from masked XYZ point rows through PointNet pooling and candidate token projection"
+                width="2684" height="556" loading="lazy" decoding="async">
             </a>
-            <figcaption>PointNet turns each masked XYZI cluster into one 128-value candidate token.</figcaption>
+            <figcaption>PointNet turns each masked XYZ cluster into one 128-value candidate token.</figcaption>
           </figure>
 
           <p>All candidate tokens from one scan enter 12 post-LayerNorm transformer blocks in one frame-wide inference
@@ -105,26 +103,25 @@
               per-token MLP.</figcaption>
           </figure>
 
-          <p>A five-class output head produces non-cone, blue, yellow, orange, and big-orange scores. A separate claim
-            head estimates whether the winning color is reliable, so the runtime can move uncertain color probability
-            to unknown without reducing cone objectness. The composable ROS 2 node executes the dynamic-candidate graph
-            through ONNX Runtime with TensorRT, CUDA, and CPU providers, then republishes each source cluster with its
-            decoded probabilities and original timestamp.</p>
+          <p>A single output head scores each candidate as cone or non-cone from geometry alone, with temperature
+            calibration baked into the graph. The acceptance threshold maximizes precision at 0.95 target recall. The
+            composable ROS 2 node executes the dynamic-candidate graph through ONNX Runtime with TensorRT and CPU
+            providers on an NVIDIA Jetson AGX Orin, then republishes each source cluster with its cone probability and
+            original timestamp.</p>
 
           <figure class="project-figure project-figure-wide">
             <a class="project-figure-link" href="/driverless-token-output.webp" target="_blank" rel="noopener noreferrer"
               aria-label="Open the PointNet output-head flowchart at full size">
               <img src="/driverless-token-output.webp"
-                alt="Flowchart from a final candidate token to cone objectness, conditional colors, and color claim"
-                width="888" height="769" loading="lazy" decoding="async">
+                alt="Flowchart from a final candidate token through the output MLP and calibrated sigmoid to cone probability"
+                width="2010" height="188" loading="lazy" decoding="async">
             </a>
-            <figcaption>The final token feeds a joint class head for objectness and conditional color, plus a separate
-              color-claim head.</figcaption>
+            <figcaption>The final token feeds one output MLP and a temperature-scaled sigmoid for cone probability.</figcaption>
           </figure>
 
-          <p>Composable C++ nodes and intra-process transport limit point-cloud copies. Post-processing merges close
-            clusters, confirms candidates across distinct odometry-associated views, applies mission- and range-aware
-            color policy, and publishes centroid positions with calibrated uncertainty.</p>
+          <p>Composable C++ nodes and intra-process transport limit point-cloud copies. Post-processing merges
+            accepted clusters within 0.4 m, confirms candidates across distinct odometry-associated views with log-odds
+            evidence, and publishes centroid positions with range- and count-calibrated uncertainty.</p>
 
           <figure class="project-figure project-figure-video project-figure-16-10-video">
             <div class="project-video-frame">
@@ -135,39 +132,116 @@
                 Your browser does not support the video tag.
               </video>
             </div>
-            <figcaption>Recorded-scene replay: raw cloud, size-filtered clusters, labels, and final cone observations.</figcaption>
+            <figcaption>Recorded-scene replay: raw OS1-128 cloud, size-filtered clusters, ground-truth cones, and final
+              cone detections.</figcaption>
           </figure>
 
-          <p>On a 630-frame real-scene replay, the complete detector reached 98.97% precision, 81.57% recall, 98.91%
-            color accuracy, and 8.7 cm localization RMSE. Every measured callback had p95 latency below 1.9 ms.</p>
+          <p>On a 630-frame real-scene replay, the complete detector reached 99.90% precision, 84.50% recall, and 8.78 cm
+            localization RMSE. Moving inference from ONNX CUDA to TensorRT on the Orin cut p50 classifier-stage latency
+            from 3.05 ms to 1.43 ms with no accuracy loss, at 2.09 ms p95.</p>
+
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/driverless-final-cones.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the final perception cones view at full size">
+              <img src="/driverless-final-cones.webp"
+                alt="Foxglove view of final perception cone detections with measured distances between cones"
+                width="1600" height="1031" loading="lazy" decoding="async">
+            </a>
+            <figcaption>Final perception cones in Foxglove, with distances measured across the detected course.</figcaption>
+          </figure>
+        </article>
+
+        <article id="driverless-controls" class="project project-article" data-section-label="Controls">
+          <h2>Driverless Controls</h2>
+
+          <figure class="project-figure project-figure-video project-figure-16-10-video">
+            <div class="project-video-frame">
+              <video class="project-video" controls muted loop playsinline preload="none"
+                poster="/driverless-controls-demo-poster.webp" data-autoplay-video>
+                <source src="/driverless-controls-demo.webm" type="video/webm">
+                <source src="/driverless-controls-demo.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <figcaption>Simulated track drive in Foxglove: racing line colored by planned speed, steering and
+              acceleration commands, and planned, estimated, and true speed.</figcaption>
+          </figure>
+
+          <p class="project-stack">C++, ROS 2, Unscented Kalman Filter, Foxglove, EUFS Sim</p>
+          <p>Built the planning and control stack that turns the cone map into steering and acceleration commands. Lane
+            detection grows track boundaries from the cone SLAM map and publishes a corridor of center-line points and
+            widths. The planner offsets each center-line point along a fixed normal, bounded by the corridor width minus
+            the car's half-width and a safety margin.</p>
+          <p>The path is initialized geometrically with projected Gauss-Seidel sweeps that minimize curvature, then
+            refined with speed-weighted sweeps that minimize lap time under the same speed profile the car follows. A
+            sweep is kept only if the exact lap time drops, so every solve is deterministic and stays under a 40 ms p99
+            budget on 1,600-point tracks.</p>
+          <p>The speed profile caps corner speed from curvature and lateral grip, then runs backward and forward passes
+            that enforce braking and acceleration limits inside a friction ellipse. Closed tracks run both passes twice
+            so the limits carry across the start/finish line.</p>
+
+          <figure class="project-figure project-figure-wide">
+            <a class="project-figure-link" href="/driverless-controls-flow.webp" target="_blank" rel="noopener noreferrer"
+              aria-label="Open the controls flowchart at full size">
+              <img src="/driverless-controls-flow.webp"
+                alt="Flowchart from detected corridor through path planning and speed profile to pure-pursuit steering and feedforward PID acceleration"
+                width="2970" height="554" loading="lazy" decoding="async">
+            </a>
+            <figcaption>The corridor becomes a planned path and speed profile, which the steering and acceleration
+              controllers track from the estimated state.</figcaption>
+          </figure>
+
+          <p>Steering combines pure pursuit on a speed-scaled lookahead with path-curvature feedforward, which removes
+            corner cutting, and proportional yaw-rate correction. Acceleration control uses planned-acceleration and
+            drag feedforward with PI correction and anti-windup at 200 Hz, and the follower brakes safely on stale pose
+            or trajectory data.</p>
+          <p>A 200 Hz Unscented Kalman Filter estimates vehicle twist by fusing INS pose, IMU yaw rate and acceleration,
+            and wheel-speed odometry from an in-house adapter node. In simulation, the car tracked the plan with 0.18 m
+            median and 0.35 m p95 tracking error.</p>
+          <p>For reference, the clip below shows the car driven by a human through a cone course; the controls results
+            above come from simulation.</p>
+
+          <figure class="project-figure project-figure-video">
+            <div class="project-video-frame">
+              <video class="project-video" controls muted loop playsinline preload="none"
+                poster="/driverless-car-drive-poster.webp" data-autoplay-video>
+                <source src="/driverless-car-drive.webm" type="video/webm">
+                <source src="/driverless-car-drive.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <figcaption>Human-driven reference run of the car through a parking-lot cone course.</figcaption>
+          </figure>
         </article>
 
         <article id="iem-bms" class="project project-article" data-section-label="BMS">
           <h2>2025–2026 IEM BMS</h2>
           <p class="project-stack">C, C++, FreeRTOS, STM32H7, Python, CAN, SPI, HIL</p>
           <p>Led the migration of Illini Electric Motorsports' battery management system from bare-metal STM32F4
-            firmware to FreeRTOS on an STM32H733. The completed system monitors a 144-cell series pack through twelve
-            LTC6811-2 devices connected by DMA-backed isoSPI.</p>
+            firmware to FreeRTOS on an STM32H733, which supplies the compute for battery modeling. The completed system
+            monitors a 140-cell series pack through twelve LTC6811-2 devices connected by DMA-backed isoSPI.</p>
 
           <figure class="project-figure project-figure-portrait">
             <img src="/iem-bms-accumulator.webp" alt="IEM accumulator with twelve cell-monitoring boards and wiring"
               width="1200" height="1600" loading="lazy" decoding="async">
-            <figcaption>The 144-cell accumulator: twelve monitoring boards, each responsible for twelve cells.</figcaption>
+            <figcaption>The 140-cell accumulator: twelve monitoring boards, eleven with twelve cells and one with
+              eight.</figcaption>
           </figure>
 
           <p>Split cell polling, isolated pack sensing, state control, precharge protection, battery modeling, and CAN
-            communication into scheduled tasks. The firmware samples pack current and bus voltage and updates
-            SOC, SOH, and power limits at 500 Hz; a separate 1 kHz task monitors precharge and inrush faults.</p>
+            communication into scheduled tasks. The battery model estimates per-cell SOC, SOH, and SOP at 200 Hz using
+            fixed-point OCV-seeded Coulomb counting and a 2-RC equivalent-circuit power model, and measured under 1%
+            SOC error against OCV-derived SOC after 22 km of driving.</p>
 
           <figure class="project-figure project-figure-wide">
             <a class="project-figure-link" href="/iem-bms-architecture.webp" target="_blank" rel="noopener noreferrer"
               aria-label="Open the BMS firmware architecture diagram at full size">
               <img src="/iem-bms-architecture.webp"
                 alt="Flowchart of STM32H7 FreeRTOS tasks, peripheral interfaces, accumulator sensors, and car signals"
-                width="1465" height="1093" loading="lazy" decoding="async">
+                width="1923" height="1269" loading="lazy" decoding="async">
             </a>
-            <figcaption>Firmware architecture from accumulator and car inputs through STM32 peripherals, FreeRTOS tasks,
-              IPC, and CAN outputs. Open the diagram for the full-size view.</figcaption>
+            <figcaption>System overview from accumulator and car inputs through STM32 peripherals and FreeRTOS tasks to
+              the main contactor, BMS fault line, and CAN. Open the diagram for the full-size view.</figcaption>
           </figure>
 
           <figure class="project-figure project-figure-portrait">
@@ -177,15 +251,17 @@
             <figcaption>Bench validation of the H7 controller, cell-monitor chain, isolated ADC, and CAN interface.</figcaption>
           </figure>
 
-          <p>Wrote DMA-based drivers for the LTC6811 chain and isolated ADC, then built Python and C++ validation tools
-            around the firmware. My Python BMS Viewer displays all cell voltages and temperatures, pack state, faults,
+          <p>Converted the LTC6811-2 and AMC131M03 drivers from blocking SPI with 50 ms HAL delays to DMA, raising
+            cell polling from 1 Hz to 10 Hz and battery-current sampling from 100 Hz to 4 kHz. Integrated an OpenBLT
+            bootloader across the BMS and safety ECUs for CAN-based flashing through Bazel targets, then built Python and
+            C++ validation tools around the firmware. My Python BMS Viewer displays all cell voltages and temperatures, pack state, faults,
             current, voltage, SOC, SOH, power limits, and CAN health while exposing controlled balancing, charging, and
             state-estimation commands.</p>
 
           <figure class="project-figure project-figure-wide">
             <a class="project-figure-link" href="/iem-bms-viewer.webp" target="_blank" rel="noopener noreferrer"
               aria-label="Open the BMS Viewer image at full size">
-              <img src="/iem-bms-viewer.webp" alt="BMS Viewer showing 144 cell readings, temperatures, faults, and CAN diagnostics"
+              <img src="/iem-bms-viewer.webp" alt="BMS Viewer showing cell readings, temperatures, faults, and CAN diagnostics"
                 width="1600" height="1200" loading="lazy" decoding="async">
             </a>
             <figcaption>The BMS Viewer during pack validation. Open the image for the full diagnostic view.</figcaption>

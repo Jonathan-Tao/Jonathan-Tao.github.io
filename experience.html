@@ -57,11 +57,13 @@
           <div class="experience-text">
             <h2>Rivian</h2>
             <p class="role">Embedded Software Intern (Jan 2026 – Aug 2026)</p>
-            <p>Developed C and Python firmware for the Electric Management Module, which controls the onboard charger,
-              power-factor correction, and DC-DC converter. Improved fault handling and telemetry in a multithreaded
-              FreeRTOS system.</p>
-            <p>Used GitLab CI/CD to run HIL, SIL, and unit tests, and built Python diagnostic tools for Ethernet, CAN,
-              UDS, and XCP.</p>
+            <p>Re-architected a UDS/XCP diagnostic tool to reach the Electric Management Module on a private CAN
+              network through the vehicle Ethernet gateway over DoIP, cutting setup-to-diagnosis time by 90%. Rewrote
+              functional-safety monitor code generation to offset execution within each period, cutting peak FreeRTOS
+              core utilization from 81% to 48%.</p>
+            <p>Raised telemetry capture from 200 Hz to 20 kHz with continuously populated ring buffers downloaded over
+              CAN and UDS, and refactored the RAM PBIST driver to protect application code and remove races that caused
+              firmware crashes.</p>
           </div>
           <div class="ascii-media ascii-media-logo" data-ascii-media data-ascii-cell="4">
             <img src="/rivian-transparent.png" alt="Rivian Logo" class="experience-logo ascii-media-source"
@@ -74,22 +76,26 @@
             <h2>Illini Electric Motorsports (UIUC FSAE)</h2>
             <h3>Driverless Lead</h3>
             <p class="role">Jul 2026 – Present</p>
-            <p>Leading development of a sensor-driven C++/ROS 2 perception pipeline for an Ouster OS1 LiDAR, with
-              motion deskewing, vehicle-frame filtering, Patchwork++ ground removal, and range-adaptive curved-voxel
-              clustering.</p>
-            <p>Designed a frame-wide PointNet transformer that encodes 64-point XYZI cone candidates and applies 12
-              geometry-biased, eight-head attention blocks with mission context. Deployed dynamic-candidate inference
-              through ONNX Runtime with TensorRT, CUDA, and CPU support.</p>
-            <p>Implemented close-cluster merging, odometry-associated temporal confirmation, mission-aware color policy,
-              and uncertainty-calibrated localization. Achieved 98.97% precision on a 630-frame real-scene replay, with
-              every measured callback below 1.9 ms p95.</p>
+            <p>Leading development of a C++/ROS 2 perception pipeline for an Ouster OS1-128 LiDAR. Replaced vendored
+              Patchwork++ with in-house ground segmentation, eliminating about 72,000 heap allocations per frame and
+              cutting p95 latency from 3.91 ms to 0.95 ms.</p>
+            <p>Designed a 12-layer, eight-head transformer that classifies LiDAR candidate clusters as cone or non-cone
+              from XYZ alone, reaching 99.90% precision, 84.50% recall, and 8.78 cm localization RMSE over 630 replay
+              frames. Migrated inference to TensorRT on an NVIDIA Jetson AGX Orin, cutting p50 classifier latency from
+              3.05 ms to 1.43 ms with no accuracy loss.</p>
+            <p>Built a racing-line planner that initializes the path geometrically, then minimizes lap time under a
+              speed profile with forward and backward passes enforcing braking and acceleration limits. Built
+              yaw-rate-feedforward steering, feedforward and PI acceleration control, and a 200 Hz UKF fusing wheel
+              odometry and INS.</p>
             <p><a class="inline-project-link" href="/projects.html#driverless-perception">View perception project →</a></p>
+            <p><a class="inline-project-link" href="/projects.html#driverless-controls">View controls project →</a></p>
             <h3>BMS Project Lead</h3>
             <p class="role">Aug 2025 – Present</p>
-            <p>Led the completed migration of a 144-cell battery-management system from bare-metal STM32F4 firmware to
-              FreeRTOS on an STM32H733. Wrote DMA-based drivers for the LTC6811 monitor chain and isolated pack ADC.</p>
-            <p>Built Python and C++ validation tools and a CAN-based BMS Viewer, then integrated and validated the final
-              system on the car.</p>
+            <p>Rewrote bare-metal firmware for a 140-cell BMS in FreeRTOS and migrated it from an STM32F4 to an
+              STM32H733. Converted the LTC6811-2 and AMC131M03 drivers to DMA, raising cell polling from 1 Hz to 10 Hz and
+              current sampling from 100 Hz to 4 kHz.</p>
+            <p>Implemented per-cell SOC, SOH, and SOP estimation at 200 Hz with under 1% SOC error after 22 km of
+              driving, integrated an OpenBLT CAN bootloader, and validated the final system on the car.</p>
             <p><a class="inline-project-link" href="/projects.html#iem-bms">View 2025–2026 IEM BMS →</a></p>
           </div>
           <div class="ascii-media ascii-media-logo" data-ascii-media data-ascii-cell="4">
@@ -101,9 +107,9 @@
           <div class="experience-text">
             <h2>AbbVie</h2>
             <p class="role">Analytical R&amp;D Software Intern (Jun 2025 – Aug 2025)</p>
-            <p>Built and deployed an internal RAG support agent with LangChain, the OpenAI API, and Power Automate. It
-              cut retrieval time for SOPs and equipment guides by more than 50%.</p>
-            <p>Connected the agent to Microsoft Teams through a Python API integration so employees could use it in
+            <p>Built and deployed a department-wide RAG assistant for SOPs and equipment documentation, using
+              Supermemory for retrieval. It cut retrieval time by more than 50%.</p>
+            <p>Connected the assistant to Microsoft Teams through Python and Power Automate so employees could use it in
               existing chats.</p>
           </div>
           <div class="ascii-media ascii-media-logo" data-ascii-media data-ascii-cell="4">
