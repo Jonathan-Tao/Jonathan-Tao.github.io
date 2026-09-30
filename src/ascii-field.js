@@ -1,3 +1,4 @@
+import { createGlyphPainter } from './ascii-glyph-painter.js';
 import { updateAsciiMotion } from './ascii-motion.js';
 import {
   buildAsciiNav,
@@ -88,6 +89,7 @@ export async function initAsciiField(mount) {
   let resizeTimer;
   let lastFrame = 0;
   let raf = 0;
+  let canvasDpr = 0;
   let cssWidth = 1;
   let cssHeight = 1;
   let cellW = 1;
@@ -98,6 +100,7 @@ export async function initAsciiField(mount) {
   let waveCos = null;
   let cursor = 'crosshair';
   let cachedRect = null;
+  let glyphPainter;
   const rippleSample = { b: 0, ox: 0, oy: 0 };
   let background = '#dcc8a5';
   let foreground = '#2a1d13';
@@ -110,6 +113,8 @@ export async function initAsciiField(mount) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
+    if (field && width === cssWidth && height === cssHeight && dpr === canvasDpr) return;
+    canvasDpr = dpr;
     cssWidth = width;
     cssHeight = height;
     canvas.width = Math.floor(width * dpr);
@@ -129,6 +134,7 @@ export async function initAsciiField(mount) {
     rows = Math.max(8, Math.floor(height / CELL));
     cellW = width / cols;
     cellH = height / rows;
+    glyphPainter = createGlyphPainter(context, FONT, cellW);
     centerX = new Float64Array(cols);
     centerY = new Float64Array(rows);
     field = new Float32Array(cols * rows);
@@ -226,8 +232,6 @@ export async function initAsciiField(mount) {
     context.fillRect(0, 0, width, height);
     context.font = FONT;
     context.textBaseline = 'top';
-    let lastFillStyle = '';
-    let lastAlpha = -1;
 
     const hoveredRegion = nav.regions.find((region) => region.id === hoveredId);
     const hasRipples = ripples.length > 0;
@@ -276,18 +280,11 @@ export async function initAsciiField(mount) {
         const offsetY = bandDriftY + (ripple ? ripple.oy * cellH * 0.8 : 0);
         const fillStyle = duotoneColor(brightness);
         const alpha = nearPointer ? 0.88 : 0.58 + band * 0.2;
-        if (fillStyle !== lastFillStyle) {
-          lastFillStyle = fillStyle;
-          context.fillStyle = fillStyle;
-        }
-        if (alpha !== lastAlpha) {
-          lastAlpha = alpha;
-          context.globalAlpha = alpha;
-        }
-        context.fillText(glyph, x * cellW + offsetX, rowY + offsetY);
+        glyphPainter.paint(glyph, fillStyle, alpha, x * cellW + offsetX, rowY + offsetY);
       }
     }
 
+    glyphPainter.finish();
     if (embeddedNav) {
       drawAsciiNav(context, nav, {
         cellW,
@@ -397,7 +394,10 @@ export async function initAsciiField(mount) {
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) requestFrame();
+    if (document.hidden && raf) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    } else if (!document.hidden) requestFrame();
   });
   const handleFullscreenChange = () => {
     if (documentIsFullscreen()) {
@@ -421,7 +421,7 @@ export async function initAsciiField(mount) {
   });
 
   layout();
-  if (reducedMotion) draw(performance.now());
-  else requestFrame();
+  draw(performance.now());
+  requestFrame();
   mount.classList.add('ascii-field-ready');
 }

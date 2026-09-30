@@ -159,6 +159,18 @@ export function buildAsciiNav(cols, rows) {
     }
   });
 
+  // Preserve row-major paint order, including overlapping label regions.
+  // Only occupied samples need to be visited while the scene animates.
+  regions.forEach((region) => {
+    region.samples = [];
+    for (let hy = region.minY * ASCII_NAV_HI; hy < (region.maxY + 1) * ASCII_NAV_HI; hy += 1) {
+      for (let hx = region.minX * ASCII_NAV_HI; hx < (region.maxX + 1) * ASCII_NAV_HI; hx += 1) {
+        const alpha = letterHi[hy * hiCols + hx];
+        if (alpha > 0.16) region.samples.push({ hx, hy, alpha });
+      }
+    }
+  });
+
   return {
     letter,
     halo: dilate(letter, cols, rows, 1),
@@ -224,28 +236,24 @@ export function drawAsciiNav(context, nav, options) {
   nav.regions.forEach((region) => {
     const isHovered = region.id === hoveredId;
     context.fillStyle = region.current ? accent : foreground;
-    for (let hy = region.minY * ASCII_NAV_HI; hy < (region.maxY + 1) * ASCII_NAV_HI; hy += 1) {
-      for (let hx = region.minX * ASCII_NAV_HI; hx < (region.maxX + 1) * ASCII_NAV_HI; hx += 1) {
-        const alpha = nav.letterHi[hy * nav.hiCols + hx];
-        if (alpha <= 0.16) continue;
-        const gx = hx / ASCII_NAV_HI;
-        const gy = hy / ASCII_NAV_HI;
-        const px = hx * hiCellW;
-        const py = hy * hiCellH;
-        const wave = reducedMotion ? 0 : Math.sin(gx * 0.5 + gy * 0.4 + t * 1.6);
-        const band = Math.max(0, 1 - Math.abs(gy - scanY) / 6);
-        const ripple = rippleField(px, py);
-        const brightness = isHovered
-          ? (alpha > 0.32 ? 0.03 : Math.min(1, 1 - alpha))
-          : Math.min(1, Math.max(0, (1 - alpha) * 0.82 - band * 0.1 - wave * 0.025 + ripple.b * 0.12));
-        const ox = isHovered ? 0 : (reducedMotion ? 0 : driftX * 0.18 + wave * 0.18) + ripple.ox * hiCellW;
-        const oy = isHovered ? 0 : (reducedMotion ? 0 : driftY * 0.15) + ripple.oy * hiCellH;
-        const glyph = charFromRamp(brightness);
-        // A blank ramp step paints nothing; skipping it drops the draw call.
-        if (glyph === ' ') continue;
-        context.globalAlpha = isHovered ? 1 : 0.88 + band * 0.12;
-        context.fillText(glyph, px + ox, py + oy);
-      }
+    for (const { hx, hy, alpha } of region.samples) {
+      const gx = hx / ASCII_NAV_HI;
+      const gy = hy / ASCII_NAV_HI;
+      const px = hx * hiCellW;
+      const py = hy * hiCellH;
+      const wave = reducedMotion ? 0 : Math.sin(gx * 0.5 + gy * 0.4 + t * 1.6);
+      const band = Math.max(0, 1 - Math.abs(gy - scanY) / 6);
+      const ripple = rippleField(px, py);
+      const brightness = isHovered
+        ? (alpha > 0.32 ? 0.03 : Math.min(1, 1 - alpha))
+        : Math.min(1, Math.max(0, (1 - alpha) * 0.82 - band * 0.1 - wave * 0.025 + ripple.b * 0.12));
+      const ox = isHovered ? 0 : (reducedMotion ? 0 : driftX * 0.18 + wave * 0.18) + ripple.ox * hiCellW;
+      const oy = isHovered ? 0 : (reducedMotion ? 0 : driftY * 0.15) + ripple.oy * hiCellH;
+      const glyph = charFromRamp(brightness);
+      // A blank ramp step paints nothing; skipping it drops the draw call.
+      if (glyph === ' ') continue;
+      context.globalAlpha = isHovered ? 1 : 0.88 + band * 0.12;
+      context.fillText(glyph, px + ox, py + oy);
     }
   });
 

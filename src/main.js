@@ -199,6 +199,24 @@ function setupVideoAutoplay(selector) {
     });
   }
 
+  // preload="none" does not defer poster requests. Fetch posters as their
+  // frames approach the viewport so distant clips do not compete with the
+  // page's font, stylesheet, and first visible content.
+  const posterObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const video = entry.target;
+      if (video.dataset.poster) {
+        video.poster = video.dataset.poster;
+        delete video.dataset.poster;
+      }
+      posterObserver.unobserve(video);
+    });
+  }, { rootMargin: '600px 0px' });
+  videos.forEach((video) => {
+    if (video.dataset.poster) posterObserver.observe(video);
+  });
+
   const visibility = new Map(videos.map((video) => [video, false]));
   const isFullscreen = (video) => {
     const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
@@ -226,7 +244,7 @@ function setupVideoAutoplay(selector) {
       return;
     }
     activeVideo = video;
-    if (!reducedMotion && video.paused) video.play().catch(() => {});
+    if (!document.hidden && !reducedMotion && video.paused) video.play().catch(() => {});
   };
 
   // Scrolled-away videos keep decoding otherwise, so every clip on the page
@@ -261,6 +279,23 @@ function setupVideoAutoplay(selector) {
   // bails out. Run it again once the freeze lifts, or a video left off-screen
   // by exiting fullscreen keeps decoding.
   onFullscreenLayoutResume(finishFullscreen);
+
+  const resumeAfterVisibility = new Set();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      videos.forEach((video) => {
+        if (!video.paused) {
+          resumeAfterVisibility.add(video);
+          stopPlayback(video);
+        }
+      });
+    } else {
+      videos.forEach((video) => {
+        if (visibility.get(video) && resumeAfterVisibility.has(video)) startPlayback(video);
+      });
+      resumeAfterVisibility.clear();
+    }
+  });
 
   videos.forEach((video) => {
     observer.observe(video);
@@ -452,9 +487,7 @@ const readinessTimeout = new Promise((resolve) => {
 });
 
 Promise.race([coreReady, readinessTimeout]).then(() => {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      document.body.classList.add('site-ready');
-    });
-  });
+  // ASCII initialization now paints its first frame before resolving. The
+  // loader can fade immediately rather than waiting two more animation frames.
+  document.body.classList.add('site-ready');
 });

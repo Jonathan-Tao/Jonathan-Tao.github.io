@@ -1,3 +1,4 @@
+import { createGlyphPainter } from './ascii-glyph-painter.js';
 import { updateAsciiMotion } from './ascii-motion.js';
 import { buildAsciiNav, drawAsciiNav } from './ascii-nav.js';
 
@@ -125,13 +126,14 @@ export async function initAsciiPortrait(mount) {
   const ctx = canvas.getContext('2d');
   let img;
   try {
-    img = await loadImage(PHOTO_SRC);
+    [img] = await Promise.all([
+      loadImage(PHOTO_SRC),
+      document.fonts.load('60px "Share Tech Mono"').catch(() => {}),
+    ]);
   } catch {
     mount.classList.add('ascii-failed');
     return;
   }
-
-  await document.fonts.load('60px "Share Tech Mono"').catch(() => {});
 
   let pointer = { x: -9999, y: -9999, active: false };
   let cols = 0;
@@ -162,6 +164,7 @@ export async function initAsciiPortrait(mount) {
   let waveCos = null;
   let cursor = 'crosshair';
   let cachedRect = null;
+  let glyphPainter;
   const rippleSample = { b: 0, ox: 0, oy: 0 };
   let bg = '#dcc8a5';
   let fg = '#111';
@@ -196,6 +199,7 @@ export async function initAsciiPortrait(mount) {
     rows = Math.max(8, Math.floor(cssH / CELL));
     cellW = cssW / cols;
     cellH = cssH / rows;
+    glyphPainter = createGlyphPainter(ctx, FONT, cellW);
     centerX = new Float64Array(cols);
     centerY = new Float64Array(rows);
     waveSin = new Float64Array(cols * rows);
@@ -329,8 +333,6 @@ export async function initAsciiPortrait(mount) {
     ctx.font = FONT;
     ctx.textBaseline = 'top';
     ctx.fillStyle = fg;
-    let lastFillStyle = fg;
-    let lastAlpha = -1;
 
     const hasRipples = ripples.length > 0;
     const revealing = pointer.active && !reducedMotion && !hit;
@@ -422,18 +424,11 @@ export async function initAsciiPortrait(mount) {
           ? (isLetter ? 0.95 : 0.65 + influence * 0.35)
           : 0.7 + band * 0.25 + influence * 0.2;
         const fillStyle = duotoneColor(b);
-        if (fillStyle !== lastFillStyle) {
-          lastFillStyle = fillStyle;
-          ctx.fillStyle = fillStyle;
-        }
-        if (alpha !== lastAlpha) {
-          lastAlpha = alpha;
-          ctx.globalAlpha = alpha;
-        }
-        ctx.fillText(ch, x * cellW + ox, rowY + oy);
+        glyphPainter.paint(ch, fillStyle, alpha, x * cellW + ox, rowY + oy);
       }
     }
 
+    glyphPainter.finish();
     drawAsciiNav(ctx, {
       regions,
       letterHi,
@@ -467,14 +462,21 @@ export async function initAsciiPortrait(mount) {
   }
 
   layout();
-  if (reducedMotion) draw(performance.now());
-  else requestFrame();
+  // Publish readiness only after the first frame is painted.
+  draw(performance.now());
+  requestFrame();
 
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) requestFrame();
+    if (document.hidden && raf) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    } else if (!document.hidden) requestFrame();
   });
 
-  new ResizeObserver(() => layout()).observe(mount);
+  new ResizeObserver(() => {
+    layout();
+    if (reducedMotion) draw(performance.now());
+  }).observe(mount);
 
   // getBoundingClientRect forces layout, so caching it keeps pointermove off
   // the layout path. Resize, scroll and relayout drop the cached rect.

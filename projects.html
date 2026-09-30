@@ -6,9 +6,85 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="preload" href="/share-tech-mono.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="/loader.css" />
+  <style>.ascii-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: #dcc8a5;
+  color: #2a1d13;
+  font-family: "Courier New", monospace;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  animation: loader-failsafe 0s linear 4s forwards;
+}
+
+body.site-ready:not(.site-leaving) .ascii-loader {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body.site-leaving .ascii-loader {
+  animation: none;
+}
+
+.ascii-loader-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.ascii-loader-bar {
+  position: relative;
+  display: block;
+  width: 2rem;
+  height: 1.4em;
+  color: #d95c16;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ascii-loader-bar::before {
+  content: "|";
+  animation: ascii-spin 0.55s steps(1, end) infinite;
+}
+
+.ascii-loader-bar::after {
+  content: none;
+}
+
+@keyframes loader-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@keyframes ascii-spin {
+  0% { content: "|"; }
+  25% { content: "/"; }
+  50% { content: "—"; }
+  75% { content: "\\"; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ascii-loader-bar::before {
+    content: "*";
+    animation: none;
+  }
+}
+</style>
   <title>Projects — Jonathan Tao</title>
-  <script type="module" crossorigin src="/assets/main.db026c19.js"></script>
+  <script type="module" crossorigin src="/assets/main.e225160c.js"></script>
   <link rel="stylesheet" href="/assets/main.23ce61b0.css">
 </head>
 
@@ -59,7 +135,7 @@
           <figure class="project-figure project-figure-wide">
             <img src="/driverless-lidar-test.webp"
               alt="Ouster OS1 LiDAR on a test stand facing a course of orange cones at night, with a laptop running the pipeline"
-              width="1767" height="900" loading="lazy" decoding="async">
+              width="1767" height="900" loading="lazy" decoding="async" fetchpriority="low">
             <figcaption>Bench testing the OS1-128 against a cone course at night.</figcaption>
           </figure>
 
@@ -82,7 +158,7 @@
               aria-label="Open the PointNet candidate encoder flowchart at full size">
               <img src="/driverless-cloud-encoder.webp"
                 alt="Flowchart from masked XYZ point rows through PointNet pooling and candidate token projection"
-                width="2684" height="556" loading="lazy" decoding="async">
+                width="2684" height="556" loading="lazy" decoding="async" fetchpriority="low">
             </a>
             <figcaption>PointNet turns each masked XYZ cluster into one 128-value candidate token.</figcaption>
           </figure>
@@ -97,7 +173,7 @@
               rel="noopener noreferrer" aria-label="Open the transformer block flowchart at full size">
               <img src="/driverless-transformer-block.webp"
                 alt="Flowchart of geometry-biased self-attention, residual connections, normalization, and token MLP"
-                width="741" height="1395" loading="lazy" decoding="async">
+                width="741" height="1395" loading="lazy" decoding="async" fetchpriority="low">
             </a>
             <figcaption>One post-LayerNorm transformer block: geometry-biased attention, residual updates, and a
               per-token MLP.</figcaption>
@@ -114,7 +190,7 @@
               aria-label="Open the PointNet output-head flowchart at full size">
               <img src="/driverless-token-output.webp"
                 alt="Flowchart from a final candidate token through the output MLP and calibrated sigmoid to cone probability"
-                width="2010" height="188" loading="lazy" decoding="async">
+                width="2010" height="188" loading="lazy" decoding="async" fetchpriority="low">
             </a>
             <figcaption>The final token feeds one output MLP and a temperature-scaled sigmoid for cone probability.</figcaption>
           </figure>
@@ -126,7 +202,7 @@
           <figure class="project-figure project-figure-video project-figure-16-10-video">
             <div class="project-video-frame">
               <video class="project-video" controls muted loop playsinline preload="none"
-                poster="/driverless-perception-demo-poster.webp" data-autoplay-video>
+                data-poster="/driverless-perception-demo-poster.webp" data-autoplay-video>
                 <source src="/driverless-perception-demo.webm" type="video/webm">
                 <source src="/driverless-perception-demo.mp4" type="video/mp4">
                 Your browser does not support the video tag.
@@ -145,7 +221,7 @@
               aria-label="Open the final perception cones view at full size">
               <img src="/driverless-final-cones.webp"
                 alt="Foxglove view of final perception cone detections with measured distances between cones"
-                width="1600" height="1031" loading="lazy" decoding="async">
+                width="1600" height="1031" loading="lazy" decoding="async" fetchpriority="low">
             </a>
             <figcaption>Final perception cones in Foxglove, with distances measured across the detected course.</figcaption>
           </figure>
@@ -157,7 +233,7 @@
           <figure class="project-figure project-figure-video project-figure-16-10-video">
             <div class="project-video-frame">
               <video class="project-video" controls muted loop playsinline preload="none"
-                poster="/driverless-controls-demo-poster.webp" data-autoplay-video>
+                data-poster="/driverless-controls-demo-poster.webp" data-autoplay-video>
                 <source src="/driverless-controls-demo.webm" type="video/webm">
                 <source src="/driverless-controls-demo.mp4" type="video/mp4">
                 Your browser does not support the video tag.
@@ -185,7 +261,7 @@
               aria-label="Open the controls flowchart at full size">
               <img src="/driverless-controls-flow.webp"
                 alt="Flowchart from detected corridor through path planning and speed profile to pure-pursuit steering and feedforward PID acceleration"
-                width="2970" height="554" loading="lazy" decoding="async">
+                width="2970" height="554" loading="lazy" decoding="async" fetchpriority="low">
             </a>
             <figcaption>The corridor becomes a planned path and speed profile, which the steering and acceleration
               controllers track from the estimated state.</figcaption>
@@ -204,7 +280,7 @@
           <figure class="project-figure project-figure-video">
             <div class="project-video-frame">
               <video class="project-video" controls muted loop playsinline preload="none"
-                poster="/driverless-car-drive-poster.webp" data-autoplay-video>
+                data-poster="/driverless-car-drive-poster.webp" data-autoplay-video>
                 <source src="/driverless-car-drive.webm" type="video/webm">
                 <source src="/driverless-car-drive.mp4" type="video/mp4">
                 Your browser does not support the video tag.
@@ -223,7 +299,7 @@
 
           <figure class="project-figure project-figure-portrait">
             <img src="/iem-bms-accumulator.webp" alt="IEM accumulator with twelve cell-monitoring boards and wiring"
-              width="1200" height="1600" loading="lazy" decoding="async">
+              width="1200" height="1600" loading="lazy" decoding="async" fetchpriority="low">
             <figcaption>The 140-cell accumulator: twelve monitoring boards, eleven with twelve cells and one with
               eight.</figcaption>
           </figure>
@@ -238,7 +314,7 @@
               aria-label="Open the BMS firmware architecture diagram at full size">
               <img src="/iem-bms-architecture.webp"
                 alt="Flowchart of STM32H7 FreeRTOS tasks, peripheral interfaces, accumulator sensors, and car signals"
-                width="1923" height="1269" loading="lazy" decoding="async">
+                width="1923" height="1269" loading="lazy" decoding="async" fetchpriority="low">
             </a>
             <figcaption>System overview from accumulator and car inputs through STM32 peripherals and FreeRTOS tasks to
               the main contactor, BMS fault line, and CAN. Open the diagram for the full-size view.</figcaption>
@@ -247,7 +323,7 @@
           <figure class="project-figure project-figure-portrait">
             <img src="/iem-bms-bench.webp"
               alt="BMS bench setup with STM32H7 controller, cell monitors, CAN adapter, and power supplies" width="1200"
-              height="1600" loading="lazy" decoding="async">
+              height="1600" loading="lazy" decoding="async" fetchpriority="low">
             <figcaption>Bench validation of the H7 controller, cell-monitor chain, isolated ADC, and CAN interface.</figcaption>
           </figure>
 
@@ -262,7 +338,7 @@
             <a class="project-figure-link" href="/iem-bms-viewer.webp" target="_blank" rel="noopener noreferrer"
               aria-label="Open the BMS Viewer image at full size">
               <img src="/iem-bms-viewer.webp" alt="BMS Viewer showing cell readings, temperatures, faults, and CAN diagnostics"
-                width="1600" height="1200" loading="lazy" decoding="async">
+                width="1600" height="1200" loading="lazy" decoding="async" fetchpriority="low">
             </a>
             <figcaption>The BMS Viewer during pack validation. Open the image for the full diagnostic view.</figcaption>
           </figure>
@@ -273,7 +349,7 @@
           <figure class="project-figure project-figure-video">
             <div class="project-video-frame">
               <video class="project-video" controls muted loop playsinline preload="none"
-                poster="/iem-bms-accel-poster.webp" data-autoplay-video>
+                data-poster="/iem-bms-accel-poster.webp" data-autoplay-video>
                 <source src="/iem-bms-accel.webm" type="video/webm">
                 <source src="/iem-bms-accel.mp4" type="video/mp4">
                 Your browser does not support the video tag.
@@ -299,7 +375,7 @@
             <div class="youtube-facade" data-youtube-id="p8PUMUjyXiI" data-youtube-title="Morphi pitch video">
               <button type="button" class="youtube-facade-button" aria-label="Play the Morphi pitch video">
                 <img src="https://i.ytimg.com/vi/p8PUMUjyXiI/hqdefault.jpg" alt="" width="480" height="360"
-                  loading="lazy" decoding="async">
+                  loading="lazy" decoding="async" fetchpriority="low">
                 <span aria-hidden="true">[ play pitch ]</span>
               </button>
             </div>
@@ -322,7 +398,7 @@
           <figure class="project-figure project-figure-video project-figure-portrait-video">
             <div class="project-video-frame">
               <video id="corexy-video" class="project-video" controls loop muted playsinline preload="none"
-                poster="/corexy-poster.webp" data-autoplay-video>
+                data-poster="/corexy-poster.webp" data-autoplay-video>
                 <source src="/20240820_211054.webm" type="video/webm">
                 <source src="/20240820_211054.mp4" type="video/mp4">
                 Your browser does not support the video tag.
@@ -341,7 +417,7 @@
           <figure class="project-figure project-figure-video project-figure-portrait-video">
             <div class="project-video-frame">
               <video id="wander-video" class="project-video" controls loop muted playsinline preload="none"
-                poster="/wander-poster.webp" data-autoplay-video>
+                data-poster="/wander-poster.webp" data-autoplay-video>
                 <source src="/robot.webm" type="video/webm">
                 <source src="/robot.mp4" type="video/mp4">
                 Your browser does not support the video tag.

@@ -109,7 +109,6 @@ function mountAsciiMedia(wrapper) {
   wrapper.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
-  const isVideo = false;
   const isLogo = wrapper.classList.contains('ascii-media-logo');
   const cell = Number(wrapper.dataset.asciiCell) || (isLogo ? 4 : 6);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -122,11 +121,12 @@ function mountAsciiMedia(wrapper) {
   let cellH = 1;
   let canvasDpr = 0;
   let grid = null;
-  let foreground = '#111';
   let raf = 0;
   let running = false;
   let intersecting = false;
   let lastFrame = 0;
+  const base = document.createElement('canvas');
+  const baseContext = base.getContext('2d');
 
   function layout(force = false) {
     const rect = wrapper.getBoundingClientRect();
@@ -147,39 +147,55 @@ function mountAsciiMedia(wrapper) {
     rows = Math.max(8, Math.floor(cssH / cell));
     cellW = cssW / cols;
     cellH = cssH / rows;
-    foreground = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || foreground;
     grid = sampleFromSource(source, cols, rows);
+    base.width = canvas.width;
+    base.height = canvas.height;
+    baseContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (grid) paintRows(baseContext, grid, null, 0, rows);
     return true;
   }
 
-  function paint(gridValues, t = 0) {
+  function paintRows(target, gridValues, scan, firstRow, lastRow) {
     const fontSize = Math.max(7, Math.floor(Math.min(cellW, cellH) * 0.95));
-
-    ctx.clearRect(0, 0, cssW, cssH);
-    ctx.font = `${fontSize}px ${FONT_FAMILY}`;
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = foreground;
-
-    const scan = (Math.sin(t * 0.0015) * 0.5 + 0.5) * rows;
-    const motion = reducedMotion ? 0 : 1;
-
-    for (let y = 0; y < rows; y += 1) {
+    target.font = `${fontSize}px ${FONT_FAMILY}`;
+    target.textBaseline = 'top';
+    for (let y = firstRow; y < lastRow; y += 1) {
+      const band = scan === null ? 0 : 1 - Math.min(1, Math.abs(y - scan) / 6);
       for (let x = 0; x < cols; x += 1) {
-        let b = gridValues[y * cols + x];
-        const band = motion * (1 - Math.min(1, Math.abs(y - scan) / 6));
-        b = Math.min(1, Math.max(0, b + band * 0.04));
-
-        // keep near-white page matte empty so glyphs sit in the page
+        const b = Math.min(1, Math.max(0, gridValues[y * cols + x] + band * 0.04));
         if (b > 0.97) continue;
-
         const ch = charFromBrightness(b);
-        // denser = darker = more opaque for readable form
-        ctx.globalAlpha = 0.45 + (1 - b) * 0.55;
-        ctx.fillStyle = duotoneColor(b);
-        ctx.fillText(ch, x * cellW, y * cellH);
+        if (ch === ' ') continue;
+        target.globalAlpha = 0.45 + (1 - b) * 0.55;
+        target.fillStyle = duotoneColor(b);
+        target.fillText(ch, x * cellW, y * cellH);
       }
     }
-    ctx.globalAlpha = 1;
+    target.globalAlpha = 1;
+  }
+
+  function paint(gridValues, t = 0) {
+    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.drawImage(base, 0, 0, canvas.width / canvasDpr, canvas.height / canvasDpr);
+    if (reducedMotion) return;
+
+    const scan = (Math.sin(t * 0.0015) * 0.5 + 0.5) * rows;
+    const fontSize = Math.max(7, Math.floor(Math.min(cellW, cellH) * 0.95));
+    const firstChanged = Math.max(0, Math.floor(scan - 6));
+    const lastChanged = Math.min(rows, Math.ceil(scan + 6));
+    // Include glyph overhang and redraw neighbouring rows in their original
+    // order. Integer device-pixel clipping avoids partially clearing edges.
+    const top = Math.max(0, Math.floor(firstChanged * cellH * canvasDpr) - 2) / canvasDpr;
+    const bottom = Math.min(canvas.height, Math.ceil((lastChanged * cellH + fontSize * 1.6) * canvasDpr) + 2) / canvasDpr;
+    const first = Math.max(0, Math.floor((top - fontSize * 1.6) / cellH));
+    const last = Math.min(rows, Math.ceil(bottom / cellH) + 1);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, top, cssW, bottom - top);
+    ctx.clip();
+    ctx.clearRect(0, top, cssW, bottom - top);
+    paintRows(ctx, gridValues, scan, first, last);
+    ctx.restore();
   }
 
   function renderFrame(t = 0) {
@@ -220,11 +236,9 @@ function mountAsciiMedia(wrapper) {
       entries.forEach((entry) => {
         intersecting = entry.isIntersecting;
         if (intersecting) {
-          if (isVideo) source.play().catch(() => {});
           if (!reducedMotion) start();
           else renderFrame(0);
         } else {
-          if (isVideo) source.pause();
           stop();
         }
       });
@@ -232,10 +246,7 @@ function mountAsciiMedia(wrapper) {
     observer.observe(wrapper);
   }
 
-  if (isVideo) {
-    if (source.readyState >= 2) ready();
-    else source.addEventListener('loadeddata', ready, { once: true });
-  } else if (source.complete && source.naturalWidth) {
+  if (source.complete && source.naturalWidth) {
     ready();
   } else {
     source.addEventListener('load', ready, { once: true });
@@ -254,6 +265,8 @@ function mountAsciiMedia(wrapper) {
   wrapper.classList.add('ascii-media-ready');
 }
 
-export function initAsciiMedia(root = document) {
+export async function initAsciiMedia(root = document) {
+  // The base raster must use the same loaded font as subsequent scan frames.
+  await document.fonts.load(`7px ${FONT_FAMILY}`).catch(() => {});
   root.querySelectorAll('[data-ascii-media]').forEach(mountAsciiMedia);
 }

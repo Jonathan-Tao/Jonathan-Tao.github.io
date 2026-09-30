@@ -6,9 +6,85 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="preload" href="/share-tech-mono.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="/loader.css" />
+  <style>.ascii-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: #dcc8a5;
+  color: #2a1d13;
+  font-family: "Courier New", monospace;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  animation: loader-failsafe 0s linear 4s forwards;
+}
+
+body.site-ready:not(.site-leaving) .ascii-loader {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body.site-leaving .ascii-loader {
+  animation: none;
+}
+
+.ascii-loader-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.ascii-loader-bar {
+  position: relative;
+  display: block;
+  width: 2rem;
+  height: 1.4em;
+  color: #d95c16;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ascii-loader-bar::before {
+  content: "|";
+  animation: ascii-spin 0.55s steps(1, end) infinite;
+}
+
+.ascii-loader-bar::after {
+  content: none;
+}
+
+@keyframes loader-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@keyframes ascii-spin {
+  0% { content: "|"; }
+  25% { content: "/"; }
+  50% { content: "—"; }
+  75% { content: "\\"; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ascii-loader-bar::before {
+    content: "*";
+    animation: none;
+  }
+}
+</style>
   <title>Experience — Jonathan Tao</title>
-  <script type="module" crossorigin src="/assets/main.db026c19.js"></script>
+  <script type="module" crossorigin src="/assets/main.e225160c.js"></script>
   <link rel="stylesheet" href="/assets/main.23ce61b0.css">
 </head>
 
