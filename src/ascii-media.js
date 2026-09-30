@@ -28,7 +28,8 @@ const DUOTONE = (() => {
     const r = Math.round(a[1][0] + (c[1][0] - a[1][0]) * seg);
     const g = Math.round(a[1][1] + (c[1][1] - a[1][1]) * seg);
     const b = Math.round(a[1][2] + (c[1][2] - a[1][2]) * seg);
-    out[i] = `rgb(${r},${g},${b})`;
+    // Hex is the same colour as rgb() but parses faster as a fillStyle.
+    out[i] = `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
   }
   return out;
 })();

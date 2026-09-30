@@ -49,7 +49,8 @@ const DUOTONE = (() => {
     const r = Math.round(a[1][0] + (c[1][0] - a[1][0]) * seg);
     const g = Math.round(a[1][1] + (c[1][1] - a[1][1]) * seg);
     const b = Math.round(a[1][2] + (c[1][2] - a[1][2]) * seg);
-    out[i] = `rgb(${r},${g},${b})`;
+    // Hex is the same colour as rgb() but parses faster as a fillStyle.
+    out[i] = `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
   }
   return out;
 })();
@@ -252,6 +253,12 @@ export async function initAsciiPortrait(mount) {
         if (age >= WAVE_TAU * 3.2) continue;
         ripple.radius = age * WAVE_SPEED;
         ripple.amp = Math.exp(-age / WAVE_TAU);
+        // A ripple only contributes where |d - radius| <= rippleCut. These
+        // bounds (1px margin against rounding) let rippleField reject cells
+        // the exact test would skip anyway, without the square root.
+        ripple.outer = ripple.radius + WAVE_BAND * 2.5 + 1;
+        const inner = ripple.radius - WAVE_BAND * 2.5 - 1;
+        ripple.innerSq = inner > 0 ? inner * inner : -1;
         ripples[write] = ripple;
         write += 1;
       }
@@ -267,6 +274,8 @@ export async function initAsciiPortrait(mount) {
         const r = ripples[i];
         const dx = px - r.x;
         const dy = py - r.y;
+        if (dx > r.outer || dx < -r.outer || dy > r.outer || dy < -r.outer) continue;
+        if (dx * dx + dy * dy < r.innerSq) continue;
         const d = Math.hypot(dx, dy);
         const diff = d - r.radius;
         if (diff < -rippleCut || diff > rippleCut) continue;

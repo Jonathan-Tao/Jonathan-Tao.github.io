@@ -28,6 +28,10 @@ body.site-ready:not(.site-leaving) .ascii-loader {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+  /* A pending failsafe animation on opacity/visibility blocks this change in
+     Firefox (loader stays up until the 4s failsafe) and skips the fade in
+     Chromium, so drop it once the page is ready. */
+  animation: none;
 }
 
 body.site-leaving .ascii-loader {
@@ -84,7 +88,7 @@ body.site-leaving .ascii-loader {
 }
 </style>
   <title>Experience — Jonathan Tao</title>
-  <script type="module" crossorigin src="/assets/main.e225160c.js"></script>
+  <script type="module" crossorigin src="/assets/main.4b145c52.js"></script>
   <link rel="stylesheet" href="/assets/main.23ce61b0.css">
 </head>
 

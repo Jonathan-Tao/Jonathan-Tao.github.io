@@ -182,6 +182,32 @@ async function compareCanvases(browser, options, route) {
       await navPage.waitForURL('**/projects.html', { timeout: 5000 });
       await navPage.close();
     }
+    // The loader must fade out on site-ready rather than wait for the 4s CSS
+    // failsafe. An intermediate opacity proves the transition actually ran.
+    for (const route of ['/', '/projects.html']) {
+      const loaderPage = await browser.newPage({ reducedMotion: 'no-preference' });
+      await loaderPage.addInitScript(() => {
+        window.loaderTimes = {};
+        const timer = setInterval(() => {
+          const loader = document.querySelector('.ascii-loader');
+          if (!loader) return;
+          const style = getComputedStyle(loader);
+          const opacity = parseFloat(style.opacity);
+          if (opacity > 0 && opacity < 1 && !window.loaderTimes.fading) window.loaderTimes.fading = performance.now();
+          if (style.visibility === 'hidden') {
+            window.loaderTimes.hidden = performance.now();
+            clearInterval(timer);
+          }
+        }, 5);
+      });
+      await loaderPage.goto(new URL(route, currentUrl).href);
+      await loaderPage.waitForFunction(() => window.loaderTimes.hidden, null, { timeout: 6000 });
+      const loaderTimes = await loaderPage.evaluate(() => window.loaderTimes);
+      assert(loaderTimes.hidden < 1500, `Loader on ${route} hid after ${Math.round(loaderTimes.hidden)}ms`);
+      assert(loaderTimes.fading < loaderTimes.hidden, `Loader on ${route} skipped its fade-out`);
+      console.log('Loader', route, { fadingMs: Math.round(loaderTimes.fading), hiddenMs: Math.round(loaderTimes.hidden) });
+      await loaderPage.close();
+    }
     const page = await browser.newPage({ reducedMotion: 'reduce' });
     await page.goto(new URL('/', currentUrl).href);
     await page.waitForSelector('body.site-ready');

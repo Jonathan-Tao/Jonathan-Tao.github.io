@@ -49,13 +49,28 @@ const DUOTONE = (() => {
     const channels = lower[1].map((channel, channelIndex) => (
       Math.round(channel + (upper[1][channelIndex] - channel) * amount)
     ));
-    return `rgb(${channels.join(',')})`;
+    // Hex is the same colour as rgb() but parses faster as a fillStyle.
+    return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
   });
 })();
 
 function charFromRamp(ramp, brightness) {
   const index = Math.min(ramp.length - 1, Math.floor((1 - brightness) * ramp.length));
   return ramp[index];
+}
+
+// A ripple only contributes where |distance - radius| <= RIPPLE_CUT. These
+// bounds (with a 1px margin against rounding) reject cells that the exact test
+// would skip anyway, without computing the square root.
+function setRippleBounds(ripple) {
+  ripple.outer = ripple.radius + RIPPLE_CUT + 1;
+  const inner = ripple.radius - RIPPLE_CUT - 1;
+  ripple.innerSq = inner > 0 ? inner * inner : -1;
+}
+
+function rippleMayReach(ripple, dx, dy) {
+  if (dx > ripple.outer || dx < -ripple.outer || dy > ripple.outer || dy < -ripple.outer) return false;
+  return dx * dx + dy * dy >= ripple.innerSq;
 }
 
 function duotoneColor(brightness) {
@@ -174,6 +189,7 @@ export async function initAsciiField(mount) {
       if (age >= WAVE_TAU * 3.2) continue;
       ripple.radius = age * WAVE_SPEED;
       ripple.amplitude = Math.exp(-age / WAVE_TAU);
+      setRippleBounds(ripple);
       ripples[write] = ripple;
       write += 1;
     }
@@ -188,6 +204,7 @@ export async function initAsciiField(mount) {
       const ripple = ripples[index];
       const dx = x - ripple.x;
       const dy = y - ripple.y;
+      if (!rippleMayReach(ripple, dx, dy)) continue;
       const distance = Math.hypot(dx, dy);
       const difference = distance - ripple.radius;
       if (difference < -RIPPLE_CUT || difference > RIPPLE_CUT) continue;
