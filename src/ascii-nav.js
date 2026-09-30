@@ -13,7 +13,17 @@ function charFromRamp(brightness) {
   return NAV_RAMP[index];
 }
 
-function readNavItems() {
+// Canvas for offline sampling. Workers have no document, so they use an
+// OffscreenCanvas; the main thread keeps using a detached <canvas>.
+export function createScratchCanvas(width, height) {
+  if (typeof document === 'undefined') return new OffscreenCanvas(width, height);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+export function readNavItems() {
   return [...document.querySelectorAll('#site-nav a')].map((link) => ({
     label: link.textContent.replace(/\s+/g, ' ').trim().toUpperCase(),
     href: link.getAttribute('href') || '/',
@@ -40,7 +50,9 @@ function dilate(source, cols, rows, radius = 1) {
   return output;
 }
 
-export function buildAsciiNav(cols, rows) {
+// `navItems` comes from readNavItems() and `viewportWidth` from innerWidth;
+// both are passed in so the scene can be built off the main thread.
+export function buildAsciiNav(cols, rows, navItems, viewportWidth) {
   const letter = new Float32Array(cols * rows);
 
   const hiCols = cols * ASCII_NAV_HI;
@@ -50,20 +62,18 @@ export function buildAsciiNav(cols, rows) {
   const regions = [];
   const width = cols * UI_SCALE;
   const height = rows * UI_SCALE;
-  const offscreen = document.createElement('canvas');
-  offscreen.width = width;
-  offscreen.height = height;
+  const offscreen = createScratchCanvas(width, height);
   const context = offscreen.getContext('2d', { willReadFrequently: true });
   context.textBaseline = 'top';
   context.textAlign = 'left';
 
-  const compact = window.innerWidth <= 600;
+  const compact = viewportWidth <= 600;
   const navX = compact ? Math.max(3, Math.round(cols * 0.1)) : Math.round(cols * 0.18);
   const fontSize = compact ? 3.35 : 4.5;
   const rowStep = compact ? 4.8 : 5.4;
   let cursorY = 5;
 
-  readNavItems().forEach((item, id) => {
+  navItems.forEach((item, id) => {
     context.font = `${fontSize * UI_SCALE}px "Share Tech Mono", "Courier New", monospace`;
     context.letterSpacing = `${fontSize * UI_SCALE * 0.22}px`;
 
@@ -181,9 +191,9 @@ export function buildAsciiNav(cols, rows) {
   };
 }
 
-export function buildNavHitBoxes(regions, cellW, cellH, motion, reducedMotion) {
+export function buildNavHitBoxes(regions, cellW, cellH, motion, reducedMotion, viewportHeight) {
   const { t, scanNorm, driftX, driftY } = motion;
-  const scanY = scanNorm * (window.innerHeight / cellH);
+  const scanY = scanNorm * (viewportHeight / cellH);
   return regions.map((region) => {
     const midX = (region.minX + region.maxX) / 2;
     const midY = (region.minY + region.maxY) / 2;
@@ -223,9 +233,10 @@ export function drawAsciiNav(context, nav, options) {
     foreground,
     accent,
     rippleField = () => NO_RIPPLE,
+    viewportHeight,
   } = options;
   const { t, scanNorm, driftX, driftY } = motion;
-  const scanY = scanNorm * (window.innerHeight / cellH);
+  const scanY = scanNorm * (viewportHeight / cellH);
   const hiCellW = cellW / ASCII_NAV_HI;
   const hiCellH = cellH / ASCII_NAV_HI;
   const navFont = Math.max(2.5, hiCellH * 1.05);

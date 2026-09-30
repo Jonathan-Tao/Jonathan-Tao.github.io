@@ -61,6 +61,62 @@ async function checkTextRendering(page) {
   console.log('Text rendering and batching:', result);
 }
 
+// Pixel fingerprints of every canvas on the page. Canvases drawn by the
+// render worker are read back through their asciiSnapshot() hook; baseline
+// builds without it are read directly. With `ring` (page coordinates), pixels
+// of the portrait canvas within ring.outer of its centre are returned
+// separately (tagged with whether they lie on the edge) instead of hashed.
+function canvasHashes(page, ring = null) {
+  return page.evaluate((ring) => Promise.all([...document.querySelectorAll('canvas')].map(async (canvas) => {
+    const image = canvas.asciiSnapshot
+      ? await canvas.asciiSnapshot()
+      : canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+    const rect = canvas.getBoundingClientRect();
+    const scale = image.width / rect.width;
+    const inRing = ring && canvas.classList.contains('ascii-canvas')
+      ? (x, y) => {
+        const d = Math.hypot((x + 0.5) / scale - (ring.x - rect.left), (y + 0.5) / scale - (ring.y - rect.top));
+        return d <= ring.outer ? (d >= ring.inner ? 2 : 1) : 0;
+      }
+      : null;
+    let hash = 2166136261;
+    const ringPixels = [];
+    for (let i = 0; i < image.data.length; i += 4) {
+      const pixel = i / 4;
+      const zone = inRing ? inRing(pixel % image.width, Math.floor(pixel / image.width)) : 0;
+      if (zone) {
+        ringPixels.push(zone, image.data[i], image.data[i + 1], image.data[i + 2], image.data[i + 3]);
+        continue;
+      }
+      for (let c = 0; c < 4; c++) hash = Math.imul(hash ^ image.data[i + c], 16777619);
+    }
+    return { hash: `${image.width}x${image.height}:${hash >>> 0}`, ringPixels };
+  })), ring);
+}
+
+// Chromium clips differently on OffscreenCanvas than on <canvas>: with worker
+// rendering, the 1px edge of the portrait's cursor-reveal circle (radius
+// 102px) can be off by up to ~22/255 and a few pixels inside it by 1. Only the
+// reveal disc is excused, and only by those amounts.
+const REVEAL_EDGE = { inner: 100, outer: 104, maxEdgeDiff: 24, maxInnerDiff: 1 };
+
+function assertFramesMatch(expected, actual, message, allowRevealEdge) {
+  assert.deepEqual(actual.map((c) => c.hash), expected.map((c) => c.hash), message);
+  expected.forEach((canvas, index) => {
+    const a = canvas.ringPixels;
+    const b = actual[index].ringPixels;
+    assert.equal(b.length, a.length, message);
+    for (let i = 0; i < a.length; i += 5) {
+      assert.equal(b[i], a[i], message);
+      const limit = !allowRevealEdge ? 0 : (a[i] === 2 ? REVEAL_EDGE.maxEdgeDiff : REVEAL_EDGE.maxInnerDiff);
+      for (let c = 1; c < 5; c++) {
+        const diff = Math.abs(a[i + c] - b[i + c]);
+        assert(diff <= limit, `${message} (reveal ${a[i] === 2 ? 'edge' : 'disc'} differs by ${diff})`);
+      }
+    }
+  });
+}
+
 async function freeze(page) {
   await page.addInitScript(() => {
     let clock = 0;
@@ -78,14 +134,14 @@ async function freeze(page) {
   });
 }
 
-async function compareCanvases(browser, options, route) {
+async function compareCanvases(browser, options, route, currentQuery = '') {
   const pages = [];
   try {
-    for (const base of [baselineUrl, currentUrl]) {
+    for (const url of [new URL(route, baselineUrl).href, new URL(route + currentQuery, currentUrl).href]) {
       const page = await browser.newPage(options);
       pages.push(page);
       await freeze(page);
-      await page.goto(new URL(route, base).href);
+      await page.goto(url);
       await page.waitForTimeout(800);
       await page.mouse.move(-100, -100);
     }
@@ -102,10 +158,14 @@ async function compareCanvases(browser, options, route) {
       for (const time of [1000, 1500, 2000].map((t) => t + index * 3000)) {
         for (const page of pages) await page.evaluate((t) => window.tick(t), time);
         const frames = [];
-        for (const page of pages) {
-          frames.push(await page.evaluate(() => [...document.querySelectorAll('canvas')].map((canvas) => canvas.toDataURL())));
-        }
-        assert.deepEqual(frames[1], frames[0], `Canvas regression: ${route}, ${options.viewport.width}px, ${time}ms, ${position}`);
+        const ring = position ? { x: position[0], y: position[1], ...REVEAL_EDGE } : null;
+        for (const page of pages) frames.push(await canvasHashes(page, ring));
+        assertFramesMatch(
+          frames[0],
+          frames[1],
+          `Canvas regression: ${route}${currentQuery}, ${options.viewport.width}px, ${time}ms, ${position}`,
+          currentQuery !== '?ascii-worker=0',
+        );
       }
     }
   } finally {
@@ -169,7 +229,12 @@ async function compareCanvases(browser, options, route) {
         assert.deepEqual(errors, [], route);
         console.log(options.viewport.width, route, metrics);
         await page.close();
-        if (baselineUrl) await compareCanvases(browser, options, route);
+        if (baselineUrl) {
+          // Worker rendering (default) and the main-thread fallback must both
+          // match the baseline pixel for pixel.
+          await compareCanvases(browser, options, route);
+          await compareCanvases(browser, options, route, '?ascii-worker=0');
+        }
       }
     }
     for (const width of [1440, 390]) {
@@ -211,12 +276,12 @@ async function compareCanvases(browser, options, route) {
     const page = await browser.newPage({ reducedMotion: 'reduce' });
     await page.goto(new URL('/', currentUrl).href);
     await page.waitForSelector('body.site-ready');
-    const first = await page.locator('canvas').evaluate((canvas) => canvas.toDataURL());
+    const first = await canvasHashes(page);
     await page.waitForTimeout(300);
-    assert.equal(await page.locator('canvas').evaluate((canvas) => canvas.toDataURL()), first, 'Reduced motion must remain static');
+    assert.deepEqual(await canvasHashes(page), first, 'Reduced motion must remain static');
     await page.setViewportSize({ width: 800, height: 600 });
     await page.waitForTimeout(100);
-    assert.equal(await page.locator('canvas').evaluate((canvas) => canvas.width), 800, 'Reduced-motion portrait must repaint on resize');
+    assert.match((await canvasHashes(page))[0].hash, /^800x/, 'Reduced-motion portrait must repaint on resize');
     await page.close();
     console.log('Performance and interaction checks passed.');
   } finally {
