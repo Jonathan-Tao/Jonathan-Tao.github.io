@@ -995,6 +995,30 @@ strong {
   max-width: 68ch;
 }
 
+.project-article > h3 {
+  margin: 1.75rem 0 0.6rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Native MathML keeps equations free of a math runtime. Wide equations
+   scroll inside their box instead of widening the page on phones. */
+.project-equation {
+  max-width: 68ch;
+  margin: 0.25rem 0 1.15rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  color: var(--text);
+}
+
+.project-equation math {
+  font-family: 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', 'DejaVu Math TeX Gyre', 'Noto Sans Math', math;
+  font-size: 1.1rem;
+  padding: 0.25rem 0;
+}
+
 .project-figure {
   width: 100%;
   margin: 1.35rem 0 1.65rem;
@@ -1686,6 +1710,10 @@ strong {
 }
 
 @media (max-width: 600px) {
+  .project-equation math {
+    font-size: 0.85rem;
+  }
+
   .project-figure-portrait,
   .project-figure-portrait-video {
     max-width: 100%;

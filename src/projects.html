@@ -165,18 +165,104 @@
               acceleration commands, and planned, estimated, and true speed.</figcaption>
           </figure>
 
-          <p class="project-stack">C++, ROS 2, Unscented Kalman Filter, Foxglove, EUFS Sim</p>
+          <p class="project-stack">C++, ROS 2, Sparse Newton QP, Unscented Kalman Filter, Foxglove, EUFS Sim</p>
           <p>Built the planning and control stack that turns the cone map into steering and acceleration commands. Lane
             detection grows track boundaries from the cone SLAM map and publishes a corridor of center-line points and
-            widths. The planner offsets each center-line point along a fixed normal, bounded by the corridor width minus
-            the car's half-width and a safety margin.</p>
-          <p>The path is initialized geometrically with projected Gauss-Seidel sweeps that minimize curvature, then
-            refined with speed-weighted sweeps that minimize lap time under the same speed profile the car follows. A
-            sweep is kept only if the exact lap time drops, so every solve is deterministic and stays under a 40 ms p99
-            budget on 1,600-point tracks.</p>
-          <p>The speed profile caps corner speed from curvature and lateral grip, then runs backward and forward passes
-            that enforce braking and acceleration limits inside a friction ellipse. Closed tracks run both passes twice
-            so the limits carry across the start/finish line.</p>
+            widths. A path planner node turns each corridor into a racing line and speed profile, and a separate path
+            follower node tracks it at 200 Hz, so a path solve can never delay a command.</p>
+
+          <h3>Racing line</h3>
+          <p>The planner moves each center-line point <i>c<sub>i</sub></i> along its fixed left normal
+            <i>n<sub>i</sub></i> by a scalar offset <i>d<sub>i</sub></i>, bounded by the corridor width minus the car's
+            half-width <i>b</i> and a safety margin <i>m</i>:</p>
+          <div class="project-equation">
+            <math display="block">
+              <msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><msub><mi>c</mi><mi>i</mi></msub><mo>+</mo>
+              <msub><mi>d</mi><mi>i</mi></msub><msub><mi>n</mi><mi>i</mi></msub><mo>,</mo>
+              <mspace width="1.5em"></mspace>
+              <mo>&#x2212;</mo><msubsup><mi>r</mi><mi>i</mi><mi>R</mi></msubsup><mo>&#x2264;</mo>
+              <msub><mi>d</mi><mi>i</mi></msub><mo>&#x2264;</mo><msubsup><mi>r</mi><mi>i</mi><mi>L</mi></msubsup>
+            </math>
+            <math display="block">
+              <msub><mi>r</mi><mi>i</mi></msub><mo>=</mo><mi>min</mi><mo>(</mo>
+              <msub><mi>d</mi><mi>max</mi></msub><mo>,</mo><mi>max</mi><mo>(</mo><mn>0</mn><mo>,</mo>
+              <msub><mi>w</mi><mi>i</mi></msub><mo>&#x2212;</mo><mi>b</mi><mo>&#x2212;</mo><mi>m</mi>
+              <mo>)</mo><mo>)</mo>
+            </math>
+          </div>
+          <p>The objective is the lap time of the same speed profile the car follows:</p>
+          <div class="project-equation">
+            <math display="block">
+              <mi>T</mi><mo>=</mo><munder><mo>&#x2211;</mo><mi>i</mi></munder>
+              <mfrac>
+                <mrow><mn>2</mn><mo>&#x2016;</mo><msub><mi>p</mi><mrow><mi>i</mi><mo>+</mo><mn>1</mn></mrow></msub>
+                  <mo>&#x2212;</mo><msub><mi>p</mi><mi>i</mi></msub><mo>&#x2016;</mo></mrow>
+                <mrow><msub><mi>v</mi><mi>i</mi></msub><mo>+</mo>
+                  <msub><mi>v</mi><mrow><mi>i</mi><mo>+</mo><mn>1</mn></mrow></msub></mrow>
+              </mfrac>
+            </math>
+          </div>
+
+          <h3>Optimizer</h3>
+          <p>Rather than optimize <i>T</i> directly, the planner minimizes a convex surrogate: squared second
+            differences, which approximate curvature, weighted by inverse planned speed so the solve straightens the
+            slow corners that cost the most time:</p>
+          <div class="project-equation">
+            <math display="block">
+              <mi>E</mi><mo>(</mo><mi>d</mi><mo>)</mo><mo>=</mo><munder><mo>&#x2211;</mo><mi>i</mi></munder>
+              <msub><mi>w</mi><mi>i</mi></msub>
+              <msup><mrow><mo>&#x2016;</mo><msub><mi>p</mi><mrow><mi>i</mi><mo>&#x2212;</mo><mn>1</mn></mrow></msub>
+                <mo>&#x2212;</mo><mn>2</mn><msub><mi>p</mi><mi>i</mi></msub><mo>+</mo>
+                <msub><mi>p</mi><mrow><mi>i</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>&#x2016;</mo></mrow><mn>2</mn></msup>
+            </math>
+            <math display="block">
+              <msub><mi>w</mi><mi>i</mi></msub><mo>=</mo>
+              <mfrac><mn>1</mn><mrow><mi>max</mi><mo>(</mo><msub><mi>v</mi><mi>i</mi></msub><mo>,</mo>
+                <msub><mi>v</mi><mi>min</mi></msub><mo>)</mo></mrow></mfrac>
+            </math>
+          </div>
+          <p>Because each point moves along a fixed normal, <i>E</i> is a box-constrained quadratic program with a banded
+            Hessian. It is solved with projected Newton passes: compute the gradient, freeze offsets that
+            sit on a bound and are pushed outward by adding a stiff diagonal penalty, solve for the Newton step with a
+            sparse LDL<sup>T</sup> factorization that costs linear time on the banded system, then project the step onto
+            the bounds and halve it until <i>E</i> falls. The condition number of the Hessian grows with the fourth
+            power of the point count, which is why the earlier Gauss-Seidel sweeps converged slowly and Newton steps do
+            not.</p>
+          <p>An outer loop reweights from the best line's speed profile and solves again, accepting a new line only if
+            the exact lap time <i>T</i> drops at a full, half, quarter, or eighth step, and stopping at the first
+            rejection. The solver reads no clock and has fixed pass limits, so identical corridors give identical lines,
+            and changed-input solves stay under a 40 ms p99 budget. Identical corridors skip the solve entirely.</p>
+
+          <h3>Speed profile</h3>
+          <p>Corner speed comes from curvature and lateral grip (11.7 m/s²), then is clamped to the 3 to 21.6 m/s
+            speed range:</p>
+          <div class="project-equation">
+            <math display="block">
+              <msub><mi>v</mi><mi>i</mi></msub><mo>=</mo>
+              <msqrt><mfrac><msub><mi>a</mi><mrow><mi>lat</mi><mo>,</mo><mi>max</mi></mrow></msub>
+                <mrow><mi>max</mi><mo>(</mo><msub><mi>&#x3BA;</mi><mi>i</mi></msub><mo>,</mo>
+                  <msub><mi>&#x3BA;</mi><mi>min</mi></msub><mo>)</mo></mrow></mfrac></msqrt>
+            </math>
+          </div>
+          <p>Backward and forward passes then lower each limit so the car can brake into the next corner and accelerate
+            out of the last one. The longitudinal acceleration available at each step shrinks inside a friction ellipse
+            as lateral acceleration rises. Closed tracks run both passes twice so the limits carry across the
+            start/finish line.</p>
+          <div class="project-equation">
+            <math display="block">
+              <msub><mi>v</mi><mi>i</mi></msub><mo>&#x2190;</mo><mi>min</mi><mo>(</mo>
+              <msub><mi>v</mi><mi>i</mi></msub><mo>,</mo>
+              <msqrt><msubsup><mi>v</mi><mrow><mi>i</mi><mo>+</mo><mn>1</mn></mrow><mn>2</mn></msubsup><mo>+</mo>
+                <mn>2</mn><mi>a</mi><mi>&#x394;</mi><msub><mi>s</mi><mi>i</mi></msub></msqrt><mo>)</mo>
+            </math>
+            <math display="block">
+              <mi>a</mi><mo>=</mo><msub><mi>a</mi><mrow><mi>long</mi><mo>,</mo><mi>max</mi></mrow></msub>
+              <msqrt><mn>1</mn><mo>&#x2212;</mo><msup><mrow><mo>(</mo><mfrac>
+                <mrow><msubsup><mi>v</mi><mi>j</mi><mn>2</mn></msubsup><msub><mi>&#x3BA;</mi><mi>j</mi></msub></mrow>
+                <msub><mi>a</mi><mrow><mi>lat</mi><mo>,</mo><mi>max</mi></mrow></msub></mfrac><mo>)</mo></mrow>
+                <mn>2</mn></msup></msqrt>
+            </math>
+          </div>
 
           <figure class="project-figure project-figure-wide">
             <a class="project-figure-link" href="/driverless-controls-flow.webp" target="_blank" rel="noopener noreferrer"
@@ -189,10 +275,76 @@
               controllers track from the estimated state.</figcaption>
           </figure>
 
-          <p>Steering combines pure pursuit on a speed-scaled lookahead with path-curvature feedforward, which removes
-            corner cutting, and proportional yaw-rate correction. Acceleration control uses planned-acceleration and
-            drag feedforward with PI correction and anti-windup at 200 Hz, and the follower brakes safely on stale pose
-            or trajectory data.</p>
+          <h3>Steering</h3>
+          <p>Pure pursuit picks the first path vertex past a speed-scaled lookahead
+            <i>L<sub>d</sub></i> = clamp(0.5 m + 0.2 s · <i>v</i>, 0.5 m, 4 m) and steers along the circle through it,
+            where <i>x<sub>t</sub></i>, <i>y<sub>t</sub></i> is the target in the vehicle frame. On its own, pure
+            pursuit cuts corners at entry and exit, because the arc to the target does not match the path's curvature
+            there. The planner publishes signed path curvature, so the controller adds it as feedforward and keeps only
+            the difference between pure pursuit from the car and from the nearest path point as the position
+            correction:</p>
+          <div class="project-equation">
+            <math display="block">
+              <msub><mi>&#x3BA;</mi><mi>pp</mi></msub><mo>=</mo>
+              <mfrac><mrow><mn>2</mn><msub><mi>y</mi><mi>t</mi></msub></mrow>
+                <mrow><msubsup><mi>x</mi><mi>t</mi><mn>2</mn></msubsup><mo>+</mo>
+                  <msubsup><mi>y</mi><mi>t</mi><mn>2</mn></msubsup></mrow></mfrac>
+            </math>
+            <math display="block">
+              <mi>&#x3BA;</mi><mo>=</mo><msub><mi>&#x3BA;</mi><mi>path</mi></msub><mo>+</mo>
+              <msub><mi>&#x3BA;</mi><mi>pp</mi></msub><mo>&#x2212;</mo><msub><mi>&#x3BA;</mi><mi>ref</mi></msub>
+            </math>
+          </div>
+          <p>On the path, <i>&#x3BA;</i><sub>pp</sub> = <i>&#x3BA;</i><sub>ref</sub> and the car follows the path
+            curvature exactly. The demanded curvature becomes a kinematic steering angle through the wheelbase
+            <i>L</i>, plus proportional feedback on the gap between the demanded yaw rate <i>v&#x3BA;</i> and the
+            measured yaw rate. The angle is then clamped to the steering limit and rate-limited to the actuator's
+            2.35 rad/s.</p>
+          <div class="project-equation">
+            <math display="block">
+              <mi>&#x3B4;</mi><mo>=</mo><mi>arctan</mi><mo>(</mo><mi>L</mi><mi>&#x3BA;</mi><mo>)</mo><mo>+</mo>
+              <msub><mi>g</mi><mi>yaw</mi></msub><mo>(</mo><mi>v</mi><mi>&#x3BA;</mi><mo>&#x2212;</mo>
+              <mover><mi>&#x3C8;</mi><mo>&#x2D9;</mo></mover><mo>)</mo>
+            </math>
+          </div>
+
+          <h3>Speed control</h3>
+          <p>The acceleration command is two feedforward terms plus PID on the speed error <i>e</i> to the profile speed
+            at the nearest vertex, clamped to &#xB1;15 m/s²:</p>
+          <div class="project-equation">
+            <math display="block">
+              <mi>a</mi><mo>=</mo><msub><mi>g</mi><mi>resist</mi></msub><msup><mi>v</mi><mn>2</mn></msup><mo>+</mo>
+              <msub><mi>g</mi><mi>plan</mi></msub><msub><mi>a</mi><mi>plan</mi></msub>
+            </math>
+            <math display="block">
+              <mo>+</mo><msub><mi>K</mi><mi>p</mi></msub><mi>e</mi><mo>+</mo><msub><mi>K</mi><mi>i</mi></msub><mi>I</mi><mo>+</mo>
+              <msub><mi>K</mi><mi>d</mi></msub><mover><mi>e</mi><mo>&#x2D9;</mo></mover>
+            </math>
+            <math display="block">
+              <msub><mi>a</mi><mi>plan</mi></msub><mo>=</mo>
+              <mfrac><mrow><msubsup><mi>v</mi><mi>t</mi><mn>2</mn></msubsup><mo>&#x2212;</mo>
+                  <msubsup><mi>v</mi><mi>n</mi><mn>2</mn></msubsup></mrow>
+                <mrow><mn>2</mn><mo>&#x2016;</mo><msub><mi>p</mi><mi>t</mi></msub><mo>&#x2212;</mo>
+                  <msub><mi>p</mi><mi>n</mi></msub><mo>&#x2016;</mo></mrow></mfrac>
+            </math>
+          </div>
+          <p>The resistance term adds back the acceleration lost to drag and rolling resistance, which grows with speed;
+            without it the loop could only cover that loss by holding a speed error, and the integral would saturate
+            before top speed. The planned-acceleration term reads the profile's own <i>v</i>² = <i>v</i><sub>0</sub>² +
+            2<i>a</i>&#x394;<i>s</i> relation back between the nearest vertex <i>n</i> and the steering target
+            <i>t</i>, so one lookahead serves both axes and every braking and acceleration ramp starts where the plan
+            starts it rather than after an error opens. The PID loop (<i>K<sub>p</sub></i> = 5, <i>K<sub>i</sub></i> =
+            0.2, <i>K<sub>d</sub></i> = 0) only covers what the feedforward misses, and its anti-windup stores the
+            clamped integral only when the full command, feedforward included, is unsaturated.</p>
+
+          <h3>Safety and validation</h3>
+          <p>The follower commands full braking and holds the last steering angle whenever the pose is older than
+            0.2 s, the trajectory older than 0.5 s, the car is off the path, or the target is not ahead. When the SLAM
+            lap count reaches the mission's laps, it brakes while still steering along the path, stopping in about
+            11 m from 18 m/s, inside the 30 m the FSAE Driverless rules allow. Two diagnostics run on every tick
+            without affecting commands: the ratio of achieved to demanded lateral acceleration,
+            |<i>v</i><i>&#x3C8;&#x307;</i>| / <i>v</i>²<i>&#x3BA;</i>, which drops below one when the car runs wide,
+            and the clearance from the car to the nearest mapped cone.</p>
           <p>A 200 Hz Unscented Kalman Filter estimates vehicle twist by fusing INS pose, IMU yaw rate and acceleration,
             and wheel-speed odometry from an in-house adapter node. In simulation, the car tracked the plan with 0.18 m
             median and 0.35 m p95 tracking error.</p>
