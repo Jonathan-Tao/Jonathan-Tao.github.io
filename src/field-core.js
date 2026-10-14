@@ -98,6 +98,7 @@ export function createFieldCore(canvas, { reducedMotion, start }) {
   let field = null;
   let nav = null;
   let embeddedNav = false;
+  let navRight = 0;
   let hitBoxes = [];
   let hoveredId = -999;
   let pointer = { x: -9999, y: -9999, active: false };
@@ -127,7 +128,7 @@ export function createFieldCore(canvas, { reducedMotion, start }) {
     const width = env.cssW;
     const height = env.cssH;
     if (field && width === cssWidth && height === cssHeight && dpr === canvasDpr) {
-      return { changed: false, navEmbedded: embeddedNav && nav.regions.length >= 4 };
+      return { changed: false, navEmbedded: embeddedNav && nav.regions.length >= 4, navRight };
     }
     canvasDpr = dpr;
     cssWidth = width;
@@ -173,7 +174,10 @@ export function createFieldCore(canvas, { reducedMotion, start }) {
 
     nav = buildAsciiNav(cols, rows, env.navItems, env.viewportWidth);
     embeddedNav = true;
-    return { changed: true, navEmbedded: embeddedNav && nav.regions.length >= 4 };
+    // Right edge of the widest label in CSS px, so the page can keep its
+    // reading column clear of the canvas nav.
+    navRight = nav.regions.reduce((edge, region) => Math.max(edge, (region.maxX + 1) * cellW), 0);
+    return { changed: true, navEmbedded: embeddedNav && nav.regions.length >= 4, navRight };
   }
 
   function updateRipples(nowSeconds) {

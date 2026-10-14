@@ -595,15 +595,19 @@ body.page-inner.ascii-nav-embedded .ascii-field {
     pointer-events: none;
   }
 
-  /* Symmetric padding so the fixed-width column can sit on the true viewport
-     centre. The reading column stays 48rem by design, so centring is about
-     where that column lands rather than scaling it up. */
+  /* The reading column stays 48rem and sits on the true viewport centre while
+     that clears the canvas nav. On laptops or zoomed-in windows, centring
+     would slide it under the nav, so it starts just past the nav's right
+     edge (--nav-right, reported by the field renderer) and narrows instead. */
   body.page-inner.ascii-nav-embedded main {
-    padding: 2.5rem 2rem 4rem;
+    padding: 2.5rem 0 4rem;
   }
 
   body.page-inner.ascii-nav-embedded .page {
-    margin-inline: auto;
+    --nav-clear: calc(var(--nav-right, calc(18vw + 17rem)) + 2.5rem);
+    margin-left: max(var(--nav-clear), calc((100% - 48rem) / 2));
+    margin-right: auto;
+    max-width: min(48rem, calc(100% - var(--nav-clear) - 2rem));
     pointer-events: auto;
   }
 }

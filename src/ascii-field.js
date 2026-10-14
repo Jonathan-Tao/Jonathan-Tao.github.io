@@ -50,7 +50,9 @@ export async function initAsciiField(mount) {
     reducedMotion,
     start,
     onLayout(result) {
-      if (result.changed) document.body.classList.toggle('ascii-nav-embedded', result.navEmbedded);
+      if (!result.changed) return;
+      document.body.classList.toggle('ascii-nav-embedded', result.navEmbedded);
+      document.documentElement.style.setProperty('--nav-right', `${Math.ceil(result.navRight)}px`);
     },
     onFrame(result) {
       firstFrame();
